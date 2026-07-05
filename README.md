@@ -31,7 +31,17 @@ Eventually, ExploreJP will use AI to recommend destinations based on user prefer
 
 ## Status
 
-ExploreJP is in early development. This repository will track the platform's design, data sources, and implementation as the project evolves.
+ExploreJP is in early development. The console application is the first step before a graphical interface.
+
+### Run the console app
+
+Requires Python 3.8+.
+
+```bash
+python main.py
+```
+
+You will see a welcome screen, then a main menu with sections for cities, culture, transportation, cost of living, and more.
 
 ## Author
 
