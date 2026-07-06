@@ -1,5 +1,5 @@
 from explorejp.console import clear_screen, pause, print_line, read_choice
-from explorejp.screens.explore_cities import show_explore_cities
+from explorejp.screens.explore_cities_menu import show_explore_cities_menu
 
 MENU_OPTIONS = {
     "1": ("Explore Cities", "🗾"),
@@ -95,7 +95,7 @@ def show_main_menu() -> None:
             continue
 
         if choice == "1":
-            show_explore_cities()
+            show_explore_cities_menu()
             continue
 
         if choice in {"2", "3", "4", "5", "6", "7"}:

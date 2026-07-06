@@ -1,6 +1,8 @@
 """City data for ExploreJP."""
 
+import csv
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -12,47 +14,41 @@ class City:
     known_for: list[str]
 
 
-CITIES: dict[str, City] = {
-    "1": City(
-        name="Tokyo",
-        population="13.9 Million",
-        region="Kanto",
-        best_season="Spring 🌸",
-        known_for=["Anime", "Technology", "Nightlife", "Food"],
-    ),
-    "2": City(
-        name="Kyoto",
-        population="1.4 Million",
-        region="Kansai",
-        best_season="Autumn 🍁",
-        known_for=["Temples", "Geisha Districts", "Traditional Culture", "Cherry Blossoms"],
-    ),
-    "3": City(
-        name="Osaka",
-        population="2.7 Million",
-        region="Kansai",
-        best_season="Spring 🌸",
-        known_for=["Street Food", "Comedy", "Castle", "Nightlife"],
-    ),
-    "4": City(
-        name="Hiroshima",
-        population="1.2 Million",
-        region="Chugoku",
-        best_season="Spring 🌸",
-        known_for=["Peace Memorial", "Miyajima", "Okonomiyaki", "History"],
-    ),
-    "5": City(
-        name="Sapporo",
-        population="1.9 Million",
-        region="Hokkaido",
-        best_season="Winter ❄️",
-        known_for=["Snow Festival", "Beer", "Ramen", "Nature"],
-    ),
-    "6": City(
-        name="Fukuoka",
-        population="1.6 Million",
-        region="Kyushu",
-        best_season="Spring 🌸",
-        known_for=["Ramen", "Yatai Stalls", "Beaches", "Gateway to Asia"],
-    ),
-}
+def load_cities_from_csv() -> dict[str, City]:
+    """Load city data from CSV file."""
+    csv_path = Path(__file__).parent.parent.parent / "data" / "cities.csv"
+    cities = {}
+    
+    with open(csv_path, encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            city_id = row["id"]
+            known_for = row["known_for"].split("|")
+            cities[city_id] = City(
+                name=row["name"],
+                population=row["population"],
+                region=row["region"],
+                best_season=row["best_season"],
+                known_for=known_for,
+            )
+    
+    return cities
+
+
+def get_city(city_id: str) -> City | None:
+    """Load CSV and return a specific city by ID."""
+    cities = load_cities_from_csv()
+    return cities.get(city_id)
+
+
+def search_cities(query: str) -> list[tuple[str, City]]:
+    """Load CSV and search cities by name (case-insensitive partial match)."""
+    cities = load_cities_from_csv()
+    query_lower = query.lower()
+    results = []
+    
+    for city_id, city in cities.items():
+        if query_lower in city.name.lower():
+            results.append((city_id, city))
+    
+    return results
