@@ -4,6 +4,8 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
+import pandas as pd
+
 
 @dataclass(frozen=True)
 class City:
@@ -12,6 +14,7 @@ class City:
     region: str
     best_season: str
     known_for: list[str]
+    cost_of_living: str
 
 
 def load_cities_from_csv() -> dict[str, City]:
@@ -30,6 +33,7 @@ def load_cities_from_csv() -> dict[str, City]:
                 region=row["region"],
                 best_season=row["best_season"],
                 known_for=known_for,
+                cost_of_living=row["cost_of_living"],
             )
     
     return cities
@@ -52,3 +56,58 @@ def search_cities(query: str) -> list[tuple[str, City]]:
             results.append((city_id, city))
     
     return results
+
+
+def get_cities_by_region(region: str) -> list[tuple[str, City]]:
+    """Load CSV and return cities in a specific region."""
+    cities = load_cities_from_csv()
+    results = []
+    
+    for city_id, city in cities.items():
+        if city.region.lower() == region.lower():
+            results.append((city_id, city))
+    
+    return results
+
+
+def get_all_regions() -> list[str]:
+    """Load CSV and return list of unique regions."""
+    cities = load_cities_from_csv()
+    regions = set()
+    
+    for city in cities.values():
+        regions.add(city.region)
+    
+    return sorted(regions)
+
+
+def get_regional_statistics() -> dict[str, dict[str, str]]:
+    """Load CSV and calculate regional statistics using pandas."""
+    csv_path = Path(__file__).parent.parent.parent / "data" / "cities.csv"
+    df = pd.read_csv(csv_path)
+    
+    # Convert population to numeric (remove " Million" and convert)
+    df['population_num'] = df['population'].str.replace(' Million', '').astype(float) * 1_000_000
+    
+    # Group by region and calculate statistics
+    stats = df.groupby('region').agg({
+        'name': 'count',
+        'population_num': 'sum'
+    }).reset_index()
+    
+    # Format results
+    result = {}
+    for _, row in stats.iterrows():
+        region = row['region']
+        city_count = int(row['name'])
+        total_pop = int(row['population_num'])
+        
+        # Format population with commas
+        pop_str = f"{total_pop:,}"
+        
+        result[region] = {
+            'cities': city_count,
+            'population': pop_str
+        }
+    
+    return result

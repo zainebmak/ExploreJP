@@ -1,11 +1,13 @@
 from explorejp.console import clear_screen, pause, print_line, read_choice
+from explorejp.screens.compare_cities import show_compare_cities
+from explorejp.screens.explore_by_region import show_explore_by_region
 from explorejp.screens.explore_cities import show_explore_cities
 from explorejp.screens.favorites import show_favorites
 from explorejp.screens.search_cities import show_search_cities
 
 
 def show_explore_cities_menu() -> None:
-    """Show the Explore Cities submenu with View, Search, Favorites, Compare options."""
+    """Show the Explore Cities submenu with Discover, Browse, Region, Compare, My Japan options."""
     while True:
         clear_screen()
         _render_menu()
@@ -15,19 +17,23 @@ def show_explore_cities_menu() -> None:
             return
 
         if choice == "1":
-            show_explore_cities()
-            continue
-
-        if choice == "2":
             show_search_cities()
             continue
 
+        if choice == "2":
+            show_explore_cities()
+            continue
+
         if choice == "3":
-            show_favorites()
+            show_explore_by_region()
             continue
 
         if choice == "4":
-            _show_compare_placeholder()
+            show_compare_cities()
+            continue
+
+        if choice == "5":
+            show_favorites()
             continue
 
         clear_screen()
@@ -39,16 +45,18 @@ def _render_menu() -> None:
     print_line(
         """
 ═══════════════════════════════
-        EXPLORE CITIES
+      🗾 EXPLORE CITIES
 ═══════════════════════════════
 
-1. View Cities
+1. 🌸 Discover a City
 
-2. Search
+2. 📍 Browse All Cities
 
-3. Favorites
+3. 🌎 Explore by Region
 
-4. Compare
+4. 📊 Compare Cities
+
+5. ❤️ My Japan
 
 0. Back
 
@@ -56,19 +64,3 @@ def _render_menu() -> None:
     )
 
 
-def _show_compare_placeholder() -> None:
-    clear_screen()
-    print_line(
-        """
-═══════════════════════════════
-           COMPARE
-═══════════════════════════════
-
-This feature is coming soon.
-
-Compare cities side by side to help
-you decide where to visit or live.
-
-═══════════════════════════════"""
-    )
-    pause("\nPress ENTER to return to the menu...")

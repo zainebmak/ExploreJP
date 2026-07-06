@@ -1,7 +1,9 @@
-id,name,population,region,best_season,known_for
-1,Tokyo,13.9 Million,Kanto,Spring 🌸,Anime|Technology|Nightlife|Food
-2,Kyoto,1.4 Million,Kansai,Autumn 🍁,Temples|Geisha Districts|Traditional Culture|Cherry Blossoms
-3,Osaka,2.7 Million,Kansai,Spring 🌸,Street Food|Comedy|Castle|Nightlife
-4,Hiroshima,1.2 Million,Chugoku,Spring 🌸,Peace Memorial|Miyajima|Okonomiyaki|History
-5,Sapporo,1.9 Million,Hokkaido,Winter ❄️,Snow Festival|Beer|Ramen|Nature
-6,Fukuoka,1.6 Million,Kyushu,Spring 🌸,Ramen|Yatai Stalls|Beaches|Gateway to Asia
+id,name,population,region,best_season,known_for,cost_of_living
+1,Tokyo,13.9 Million,Kanto,Spring 🌸,Anime|Technology|Nightlife|Food,High
+2,Kyoto,1.4 Million,Kansai,Autumn 🍁,Temples|Geisha Districts|Traditional Culture|Cherry Blossoms,Medium
+3,Osaka,2.7 Million,Kansai,Spring 🌸,Street Food|Comedy|Castle|Nightlife,Medium
+4,Hiroshima,1.2 Million,Chugoku,Spring 🌸,Peace Memorial|Miyajima|Okonomiyaki|History,Low
+5,Sapporo,1.9 Million,Hokkaido,Winter ❄️,Snow Festival|Beer|Ramen|Nature,Medium
+6,Fukuoka,1.6 Million,Kyushu,Spring 🌸,Ramen|Yatai Stalls|Beaches|Gateway to Asia,Medium
+7,Nara,360,000,Kansai,Spring 🌸,Deer Park|Temples|Traditional Culture|History,Low
+8,Sendai,1.1 Million,Tohoku,Spring 🌸,Tanabata Festival|Nature|History|Food,Medium
