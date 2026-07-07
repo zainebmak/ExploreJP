@@ -81,6 +81,31 @@ def get_all_regions() -> list[str]:
     return sorted(regions)
 
 
+def get_cities_by_season(season: str) -> list[tuple[str, City]]:
+    """Load CSV and return cities with a specific best season."""
+    cities = load_cities_from_csv()
+    results = []
+    
+    for city_id, city in cities.items():
+        if season.lower() in city.best_season.lower():
+            results.append((city_id, city))
+    
+    return results
+
+
+def get_all_seasons() -> list[str]:
+    """Load CSV and return list of unique seasons."""
+    cities = load_cities_from_csv()
+    seasons = set()
+    
+    for city in cities.values():
+        # Extract season from best_season (e.g., "Spring 🌸" -> "Spring")
+        season = city.best_season.split()[0]
+        seasons.add(season)
+    
+    return sorted(seasons)
+
+
 def get_regional_statistics() -> dict[str, dict[str, str]]:
     """Load CSV and calculate regional statistics using pandas."""
     csv_path = Path(__file__).parent.parent.parent / "data" / "cities.csv"

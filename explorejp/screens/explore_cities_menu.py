@@ -1,13 +1,15 @@
 from explorejp.console import clear_screen, pause, print_line, read_choice
 from explorejp.screens.compare_cities import show_compare_cities
+from explorejp.screens.data_visualizations import show_data_visualizations_menu
 from explorejp.screens.explore_by_region import show_explore_by_region
+from explorejp.screens.explore_by_season import show_explore_by_season
 from explorejp.screens.explore_cities import show_explore_cities
 from explorejp.screens.favorites import show_favorites
 from explorejp.screens.search_cities import show_search_cities
 
 
 def show_explore_cities_menu() -> None:
-    """Show the Explore Cities submenu with Discover, Browse, Region, Compare, My Japan options."""
+    """Show the Explore Cities submenu with all city exploration options."""
     while True:
         clear_screen()
         _render_menu()
@@ -17,11 +19,11 @@ def show_explore_cities_menu() -> None:
             return
 
         if choice == "1":
-            show_search_cities()
+            show_explore_cities()
             continue
 
         if choice == "2":
-            show_explore_cities()
+            show_search_cities()
             continue
 
         if choice == "3":
@@ -29,11 +31,19 @@ def show_explore_cities_menu() -> None:
             continue
 
         if choice == "4":
-            show_compare_cities()
+            show_explore_by_season()
             continue
 
         if choice == "5":
             show_favorites()
+            continue
+
+        if choice == "6":
+            show_compare_cities()
+            continue
+
+        if choice == "7":
+            show_data_visualizations_menu()
             continue
 
         clear_screen()
@@ -48,17 +58,23 @@ def _render_menu() -> None:
       🗾 EXPLORE CITIES
 ═══════════════════════════════
 
-1. 🌸 Discover a City
+1. 📍 Browse All Cities
 
-2. 📍 Browse All Cities
+2. � Discover a City
 
 3. 🌎 Explore by Region
 
-4. 📊 Compare Cities
+4. 🌸 Explore by Season
 
 5. ❤️ My Japan
 
-0. Back
+6. ⚖️ Compare Cities
+
+────────────────────────────
+
+7. 📊 City Analytics
+
+0. ⬅ Back
 
 ═══════════════════════════════"""
     )

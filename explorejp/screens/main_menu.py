@@ -9,7 +9,7 @@ MENU_OPTIONS = {
     "4": ("Japanese Cuisine", "🍜"),
     "5": ("Transportation", "🚄"),
     "6": ("Cost of Living", "💴"),
-    "7": ("Statistics", "📊"),
+    "7": ("Regional Statistics", "📊"),
     "8": ("About ExploreJP", "ℹ️"),
     "0": ("Exit", None),
 }
@@ -34,7 +34,7 @@ def _render_menu() -> None:
 
 6. 💴 Cost of Living
 
-7. 📊 Statistics
+7. 📊 Regional Statistics
 
 8. ℹ️ About ExploreJP
 
