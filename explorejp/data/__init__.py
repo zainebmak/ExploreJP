@@ -1,10 +1,17 @@
-"""City data for ExploreJP."""
+"""City data for ExploreJP - ONLY talks to SQLite database."""
 
-import csv
 from dataclasses import dataclass
-from pathlib import Path
 
 import pandas as pd
+from explorejp.database import (
+    get_all_cities as db_get_all_cities,
+    get_all_regions as db_get_all_regions,
+    get_all_seasons as db_get_all_seasons,
+    get_city_by_id,
+    get_cities_by_region as db_get_cities_by_region,
+    get_cities_by_season as db_get_cities_by_season,
+    search_cities as db_search_cities,
+)
 
 
 @dataclass(frozen=True)
@@ -17,102 +24,123 @@ class City:
     cost_of_living: str
 
 
-def load_cities_from_csv() -> dict[str, City]:
-    """Load city data from CSV file."""
-    csv_path = Path(__file__).parent.parent.parent / "data" / "cities.csv"
-    cities = {}
-    
-    with open(csv_path, encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            city_id = row["id"]
-            known_for = row["known_for"].split("|")
-            cities[city_id] = City(
-                name=row["name"],
-                population=row["population"],
-                region=row["region"],
-                best_season=row["best_season"],
-                known_for=known_for,
-                cost_of_living=row["cost_of_living"],
-            )
-    
-    return cities
-
-
 def get_city(city_id: str) -> City | None:
-    """Load CSV and return a specific city by ID."""
-    cities = load_cities_from_csv()
-    return cities.get(city_id)
+    """Get a city by its ID using database."""
+    city_dict = get_city_by_id(int(city_id))
+    if not city_dict:
+        return None
+    
+    known_for = city_dict["known_for"].split("|")
+    return City(
+        name=city_dict["name"],
+        population=city_dict["population"],
+        region=city_dict["region"],
+        best_season=city_dict["best_season"],
+        known_for=known_for,
+        cost_of_living=city_dict["cost_of_living"],
+    )
 
 
 def search_cities(query: str) -> list[tuple[str, City]]:
-    """Load CSV and search cities by name (case-insensitive partial match)."""
-    cities = load_cities_from_csv()
-    query_lower = query.lower()
+    """Search cities by name (partial match) using database."""
     results = []
-    
-    for city_id, city in cities.items():
-        if query_lower in city.name.lower():
-            results.append((city_id, city))
-    
+    for city_dict in db_search_cities(query):
+        city_id = str(city_dict["id"])
+        known_for = city_dict["known_for"].split("|")
+        city = City(
+            name=city_dict["name"],
+            population=city_dict["population"],
+            region=city_dict["region"],
+            best_season=city_dict["best_season"],
+            known_for=known_for,
+            cost_of_living=city_dict["cost_of_living"],
+        )
+        results.append((city_id, city))
     return results
 
 
 def get_cities_by_region(region: str) -> list[tuple[str, City]]:
-    """Load CSV and return cities in a specific region."""
-    cities = load_cities_from_csv()
+    """Get cities by region using database."""
     results = []
-    
-    for city_id, city in cities.items():
-        if city.region.lower() == region.lower():
-            results.append((city_id, city))
-    
+    for city_dict in db_get_cities_by_region(region):
+        city_id = str(city_dict["id"])
+        known_for = city_dict["known_for"].split("|")
+        city = City(
+            name=city_dict["name"],
+            population=city_dict["population"],
+            region=city_dict["region"],
+            best_season=city_dict["best_season"],
+            known_for=known_for,
+            cost_of_living=city_dict["cost_of_living"],
+        )
+        results.append((city_id, city))
     return results
 
 
 def get_all_regions() -> list[str]:
-    """Load CSV and return list of unique regions."""
-    cities = load_cities_from_csv()
-    regions = set()
-    
-    for city in cities.values():
-        regions.add(city.region)
-    
-    return sorted(regions)
+    """Get all unique regions using database."""
+    return db_get_all_regions()
 
 
 def get_cities_by_season(season: str) -> list[tuple[str, City]]:
-    """Load CSV and return cities with a specific best season."""
-    cities = load_cities_from_csv()
+    """Get cities by season using database."""
     results = []
-    
-    for city_id, city in cities.items():
-        if season.lower() in city.best_season.lower():
-            results.append((city_id, city))
-    
+    for city_dict in db_get_cities_by_season(season):
+        city_id = str(city_dict["id"])
+        known_for = city_dict["known_for"].split("|")
+        city = City(
+            name=city_dict["name"],
+            population=city_dict["population"],
+            region=city_dict["region"],
+            best_season=city_dict["best_season"],
+            known_for=known_for,
+            cost_of_living=city_dict["cost_of_living"],
+        )
+        results.append((city_id, city))
     return results
 
 
 def get_all_seasons() -> list[str]:
-    """Load CSV and return list of unique seasons."""
-    cities = load_cities_from_csv()
-    seasons = set()
-    
-    for city in cities.values():
-        # Extract season from best_season (e.g., "Spring 🌸" -> "Spring")
-        season = city.best_season.split()[0]
-        seasons.add(season)
-    
-    return sorted(seasons)
+    """Get all unique seasons using database."""
+    return db_get_all_seasons()
+
+
+def get_all_cities() -> dict[str, City]:
+    """Get all cities from database as dict of City objects."""
+    cities = {}
+    for city_dict in db_get_all_cities():
+        city_id = str(city_dict["id"])
+        known_for = city_dict["known_for"].split("|")
+        cities[city_id] = City(
+            name=city_dict["name"],
+            population=city_dict["population"],
+            region=city_dict["region"],
+            best_season=city_dict["best_season"],
+            known_for=known_for,
+            cost_of_living=city_dict["cost_of_living"],
+        )
+    return cities
 
 
 def get_regional_statistics() -> dict[str, dict[str, str]]:
-    """Load CSV and calculate regional statistics using pandas."""
-    csv_path = Path(__file__).parent.parent.parent / "data" / "cities.csv"
-    df = pd.read_csv(csv_path)
+    """Calculate regional statistics using database and pandas."""
+    from explorejp.database import get_all_cities as db_get_all_cities
     
-    # Convert population to numeric (remove " Million" and convert)
-    df['population_num'] = df['population'].str.replace(' Million', '').astype(float) * 1_000_000
+    cities_data = db_get_all_cities()
+    
+    # Convert to pandas DataFrame
+    df = pd.DataFrame(cities_data)
+    
+    # Convert population to numeric (handle both "X Million" and "360,000" formats)
+    def parse_population(pop_str: str) -> float:
+        pop_str = str(pop_str).strip()
+        if 'Million' in pop_str:
+            return float(pop_str.replace(' Million', '').strip()) * 1_000_000
+        else:
+            # Remove commas and convert to float
+            return float(pop_str.replace(',', '').strip())
+    
+    df['population_num'] = df['population'].apply(parse_population)
     
     # Group by region and calculate statistics
     stats = df.groupby('region').agg({

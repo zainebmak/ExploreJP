@@ -1,5 +1,5 @@
 from explorejp.console import clear_screen, pause, print_line, read_choice
-from explorejp.data import City, favorites, get_city, load_cities_from_csv
+from explorejp.data import City, favorites, get_city, get_all_cities
 
 
 # Region emoji mapping
@@ -15,7 +15,7 @@ REGION_EMOJIS = {
 
 def show_compare_cities() -> None:
     """Allow users to compare two cities side by side."""
-    cities = load_cities_from_csv()
+    cities = get_all_cities()
     city_list = sorted(cities.items())
     
     # Select first city

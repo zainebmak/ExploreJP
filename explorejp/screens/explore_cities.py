@@ -1,9 +1,9 @@
 from explorejp.console import clear_screen, pause, print_line, read_choice
-from explorejp.data import City, favorites, get_city, load_cities_from_csv
+from explorejp.data import City, favorites, get_city, get_all_cities
 
 
 def _render_city_list() -> None:
-    cities = load_cities_from_csv()
+    cities = get_all_cities()
     city_list = "\n".join(
         f"{city_id} {city.name}" for city_id, city in sorted(cities.items())
     )
