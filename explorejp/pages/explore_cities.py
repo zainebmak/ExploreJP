@@ -87,24 +87,34 @@ def _render_action_menu(selected_action: str) -> None:
     for idx, (icon, action, description) in enumerate(sections[:4]):
         with cols1[idx]:
             button_label = f"{icon}\n\n{action}"
-            if st.button(button_label, key=f"action_{action}", help=description, use_container_width=True):
+            # Use unique keys and check if this action is already selected
+            button_key = f"action_{action}_{idx}"
+            if st.button(button_label, key=button_key, help=description, use_container_width=True):
                 st.session_state.explore_cities_action = action
+                # Clear any previous city selection when changing actions
+                if "selected_city_id" in st.session_state:
+                    del st.session_state.selected_city_id
                 st.rerun()
     
     # Second row - 3 cards centered
     st.markdown('<br/>', unsafe_allow_html=True)
     col_spacer1, col_action5, col_action6, col_action7, col_spacer2 = st.columns([0.5, 1, 1, 1, 0.5], gap="medium")
-    for idx, (col, (icon, action, description)) in enumerate(zip([col_action5, col_action6, col_action7], sections[4:])):
+    for idx, (col, (icon, action, description)) in enumerate(zip([col_action5, col_action6, col_action7], sections[4:]), start=4):
         with col:
             button_label = f"{icon}\n\n{action}"
-            if st.button(button_label, key=f"action_{action}", help=description, use_container_width=True):
+            button_key = f"action_{action}_{idx}"
+            if st.button(button_label, key=button_key, help=description, use_container_width=True):
                 st.session_state.explore_cities_action = action
+                # Clear any previous city selection when changing actions
+                if "selected_city_id" in st.session_state:
+                    del st.session_state.selected_city_id
                 st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 
 def show() -> None:
+    # Initialize session state with more robust handling
     if "explore_cities_action" not in st.session_state:
         st.session_state.explore_cities_action = "Browse All Cities"
 
@@ -126,20 +136,24 @@ def show() -> None:
     
     st.markdown("<br/>", unsafe_allow_html=True)
 
-    if action == "Browse All Cities":
+    # Route to the appropriate function based on action
+    action_routes = {
+        "Browse All Cities": _show_browse_all_cities,
+        "Discover a City": _show_discover_city,
+        "Explore by Region": _show_explore_by_region,
+        "Explore by Season": _show_explore_by_season,
+        "My Japan": _show_my_japan,
+        "Compare Cities": _show_compare_cities,
+        "City Analytics": _show_city_analytics,
+    }
+    
+    # Call the appropriate function
+    if action in action_routes:
+        action_routes[action]()
+    else:
+        # Fallback to browse all cities if unknown action
+        st.session_state.explore_cities_action = "Browse All Cities"
         _show_browse_all_cities()
-    elif action == "Discover a City":
-        _show_discover_city()
-    elif action == "Explore by Region":
-        _show_explore_by_region()
-    elif action == "Explore by Season":
-        _show_explore_by_season()
-    elif action == "My Japan":
-        _show_my_japan()
-    elif action == "Compare Cities":
-        _show_compare_cities()
-    elif action == "City Analytics":
-        _show_city_analytics()
 
 
 def _show_browse_all_cities() -> None:

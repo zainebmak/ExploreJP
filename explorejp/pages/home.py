@@ -39,7 +39,8 @@ def show():
         # Explore Now button that navigates to explore cities
         if st.button("EXPLORE NOW →", use_container_width=False, key="explore_now_btn"):
             st.session_state.page = "🗺️ Explore Cities"
-            st.query_params["page"] = "explore"
+            # Reset explore cities action to browse all cities
+            st.session_state.explore_cities_action = "Browse All Cities"
             st.rerun()
     
     with col_hero_right:
@@ -58,7 +59,8 @@ def show():
         with dest_col2:
             if st.button("VIEW ALL", key="view_all_destinations"):
                 st.session_state.page = "🗺️ Explore Cities"
-                st.query_params["page"] = "explore"
+                # Reset explore cities action to browse all cities
+                st.session_state.explore_cities_action = "Browse All Cities"
                 st.rerun()
         
         # Destinations in horizontal layout
