@@ -8,7 +8,7 @@
 
 ### 🏙️ City Discovery
 Browse and explore cities across Japan with rich, visual profiles featuring:
-- Stunning city images and detailed information
+- City images and detailed information
 - Regional and seasonal categorization
 - Population statistics and cost of living data
 - Interactive filtering and search capabilities
