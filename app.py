@@ -45,20 +45,23 @@ def main():
         # Calculate current index based on session state
         current_index = 0 if st.session_state.page == "🏠 Home" else 1
         
+        # Use a unique key that won't conflict with other navigation
         page = st.radio(
             "Navigate",
             ["🏠 Home", "🗺️ Explore Cities"],
             label_visibility="collapsed",
             index=current_index,
-            key="sidebar_nav"
+            key="sidebar_nav_radio"
         )
         
-        # Update session state if radio selection changed
+        # Only update if there's an actual change and it's from user interaction
         if page != st.session_state.page:
             st.session_state.page = page
             # Clear any action state when switching pages
             if "explore_cities_action" in st.session_state:
-                del st.session_state.explore_cities_action
+                st.session_state.explore_cities_action = "Browse All Cities"
+            if "selected_city_id" in st.session_state:
+                del st.session_state.selected_city_id
             st.rerun()
         
         st.markdown("---")
@@ -71,10 +74,11 @@ def main():
         - View interactive statistics
         """)
     
-    # Page routing
-    if st.session_state.page == "🏠 Home":
+    # Page routing - use session state directly to avoid conflicts
+    current_page = st.session_state.page
+    if current_page == "🏠 Home":
         home.show()
-    elif st.session_state.page == "🗺️ Explore Cities":
+    elif current_page == "🗺️ Explore Cities":
         explore_cities.show()
 
 if __name__ == "__main__":

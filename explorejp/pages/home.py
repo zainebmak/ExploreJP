@@ -41,6 +41,7 @@ def show():
             st.session_state.page = "🗺️ Explore Cities"
             # Reset explore cities action to browse all cities
             st.session_state.explore_cities_action = "Browse All Cities"
+            # Force a rerun to navigate
             st.rerun()
     
     with col_hero_right:
@@ -61,6 +62,7 @@ def show():
                 st.session_state.page = "🗺️ Explore Cities"
                 # Reset explore cities action to browse all cities
                 st.session_state.explore_cities_action = "Browse All Cities"
+                # Force a rerun to navigate
                 st.rerun()
         
         # Destinations in horizontal layout
