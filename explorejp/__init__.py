@@ -1,0 +1,1 @@
+"""ExploreJP console application."""
