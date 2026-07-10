@@ -87,14 +87,12 @@ def _render_action_menu(selected_action: str) -> None:
     for idx, (icon, action, description) in enumerate(sections[:4]):
         with cols1[idx]:
             button_label = f"{icon}\n\n{action}"
-            # Use unique keys and check if this action is already selected
-            button_key = f"action_{action}_{idx}"
+            button_key = f"menu_action_{idx}_{action.replace(' ', '_')}"
             if st.button(button_label, key=button_key, help=description, use_container_width=True):
                 st.session_state.explore_cities_action = action
                 # Clear any previous city selection when changing actions
                 if "selected_city_id" in st.session_state:
                     del st.session_state.selected_city_id
-                st.rerun()
     
     # Second row - 3 cards centered
     st.markdown('<br/>', unsafe_allow_html=True)
@@ -102,13 +100,12 @@ def _render_action_menu(selected_action: str) -> None:
     for idx, (col, (icon, action, description)) in enumerate(zip([col_action5, col_action6, col_action7], sections[4:]), start=4):
         with col:
             button_label = f"{icon}\n\n{action}"
-            button_key = f"action_{action}_{idx}"
+            button_key = f"menu_action_{idx}_{action.replace(' ', '_')}"
             if st.button(button_label, key=button_key, help=description, use_container_width=True):
                 st.session_state.explore_cities_action = action
                 # Clear any previous city selection when changing actions
                 if "selected_city_id" in st.session_state:
                     del st.session_state.selected_city_id
-                st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 

@@ -1025,7 +1025,7 @@ CUSTOM_CSS = """
     }
 
     /* Beautiful Action Menu Buttons */
-    .stButton>button[key*="action_"] {
+    .stButton>button[key*="menu_action_"] {
         background: linear-gradient(135deg, #ffffff 0%, #fffbfc 100%) !important;
         border: 2px solid rgba(242, 174, 188, 0.25) !important;
         border-radius: 20px !important;
@@ -1046,14 +1046,14 @@ CUSTOM_CSS = """
         letter-spacing: 0.01em !important;
     }
 
-    .stButton>button[key*="action_"]:hover {
+    .stButton>button[key*="menu_action_"]:hover {
         background: linear-gradient(135deg, """ + COLORS['misty_rose'] + """ 0%, #ffffff 100%) !important;
         border-color: """ + COLORS['cherry_blossom_pink'] + """ !important;
         transform: translateY(-10px) !important;
         box-shadow: 0 16px 40px rgba(108, 8, 32, 0.15) !important;
     }
 
-    .stButton>button[key*="action_"]:active {
+    .stButton>button[key*="menu_action_"]:active {
         transform: translateY(-6px) !important;
         box-shadow: 0 10px 32px rgba(108, 8, 32, 0.12) !important;
     }

@@ -39,10 +39,7 @@ def show():
         # Explore Now button that navigates to explore cities
         if st.button("EXPLORE NOW →", use_container_width=False, key="explore_now_btn"):
             st.session_state.page = "🗺️ Explore Cities"
-            # Reset explore cities action to browse all cities
             st.session_state.explore_cities_action = "Browse All Cities"
-            # Force a rerun to navigate
-            st.rerun()
     
     with col_hero_right:
         st.markdown('<div class="hero-right-visual"><img src="https://images.unsplash.com/photo-1528164344705-47542687000d?auto=format&fit=crop&w=1400&q=80" alt="Mount Fuji with Torii gate and cherry blossoms" class="hero-image-main"></div>', unsafe_allow_html=True)
@@ -60,10 +57,7 @@ def show():
         with dest_col2:
             if st.button("VIEW ALL", key="view_all_destinations"):
                 st.session_state.page = "🗺️ Explore Cities"
-                # Reset explore cities action to browse all cities
                 st.session_state.explore_cities_action = "Browse All Cities"
-                # Force a rerun to navigate
-                st.rerun()
         
         # Destinations in horizontal layout
         dest_cols = st.columns(3, gap="medium")
