@@ -2,7 +2,7 @@
 
 **ExploreJP** is a beautiful, data-driven web platform that helps people discover Japanese cities and make informed decisions about where to live, visit, or relocate.
 
-![ExploreJP Banner](https://images.unsplash.com/photo-1528164344705-47542687000d?auto=format&fit=crop&w=1400&q=80)
+
 
 ## ✨ Features
 
