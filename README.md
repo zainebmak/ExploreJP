@@ -186,7 +186,7 @@ ExploreJP/
 
 ### Upcoming 🔜
 - Weather analysis and climate data
--AI assistant
+- AI assistant
 - Community reviews and ratings
 
 ## 🤝 Contributing
