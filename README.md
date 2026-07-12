@@ -41,6 +41,16 @@ Build your dream Japan itinerary:
 - Quick access to saved destinations
 - Beautiful card-based layout
 
+### 🧳 Trip Planning
+Plan your perfect Japan trip with smart tools:
+- Create custom itineraries with trip details (dates, season, budget, interests)
+- AI-powered city recommendations based on season and interests
+- Interactive map with route visualization and city markers
+- Route optimization using nearest neighbor algorithm for minimal travel distance
+- PDF export with complete itinerary and packing list
+- Smart packing suggestions based on season and travel interests
+- Track total travel distance and daily budget calculations
+
 ## 🎨 Design
 
 ExploreJP features a modern, elegant design with:
@@ -109,6 +119,7 @@ ExploreJP/
 │   ├── pages/           # Web application pages
 │   │   ├── home.py
 │   │   ├── explore_cities.py
+│   │   ├── plan_trip.py
 │   │   └── data_visualizations.py
 │   ├── screens/         # Console application screens
 │   └── data/            # Data management
@@ -131,14 +142,16 @@ ExploreJP/
 - City comparison tool
 - Data visualizations
 - Favorites management
+- Trip planning with itinerary builder
+- Interactive route maps with optimization
+- PDF export for itineraries
+- Smart packing recommendations
 
 ### Upcoming Features 🔜
 - Weather analysis and climate data
 - Transportation network explorer
 - Detailed cost of living breakdown
 - User accounts and profiles
-- AI-powered city recommendations
-- Travel itinerary planner
 - Community reviews and ratings
 
 ## 🤝 Contributing
