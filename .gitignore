@@ -9,3 +9,7 @@ env/
 .vscode/
 *.swp
 .DS_Store
+
+# Generated chart exports — not source code
+charts/
+*.html
