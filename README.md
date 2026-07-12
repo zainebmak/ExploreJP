@@ -186,8 +186,7 @@ ExploreJP/
 
 ### Upcoming 🔜
 - Weather analysis and climate data
-- Transportation network explorer
-- Detailed cost of living breakdown
+-AI assistant
 - Community reviews and ratings
 
 ## 🤝 Contributing
