@@ -216,16 +216,52 @@ def _db_response(message: str, user_id: int | None) -> str:
 
 # ── LLM engine (Phase 3) ──────────────────────────────────────────────────────
 
-def _get_openai_client():
-    """Return an OpenAI client if a key is configured, else None. Never raises."""
+def _openai_version() -> tuple[int, int] | None:
+    """Return (major, minor) of installed openai, or None if not installed."""
     try:
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        if not api_key or api_key.startswith("sk-your"):
-            return None
-        from openai import OpenAI
-        return OpenAI(api_key=api_key)
+        import openai as _oai
+        parts = _oai.__version__.split(".")
+        return (int(parts[0]), int(parts[1]))
     except Exception:
         return None
+
+
+def is_llm_available() -> bool:
+    """
+    True when:
+    1. OPENAI_API_KEY is set to a real key (not the placeholder)
+    2. openai >= 1.60 is installed (avoids the httpx proxies conflict)
+    Does NOT instantiate the client — safe to call on every render.
+    """
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key or api_key.startswith("sk-your"):
+        return False
+    ver = _openai_version()
+    if ver is None:
+        return False
+    # openai 1.60+ or 2.x are safe with httpx 0.28
+    if ver[0] == 1 and ver[1] < 60:
+        return False
+    return True
+
+
+def llm_unavailable_reason() -> str:
+    """Human-readable reason why LLM is not available."""
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key or api_key.startswith("sk-your"):
+        return "no_key"
+    ver = _openai_version()
+    if ver is None:
+        return "not_installed"
+    if ver[0] == 1 and ver[1] < 60:
+        return "version_conflict"
+    return ""
+
+
+def _make_client():
+    """Instantiate OpenAI client. Only call this when actually sending a request."""
+    from openai import OpenAI
+    return OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
 
 
 def llm_response(
@@ -235,26 +271,23 @@ def llm_response(
 ) -> str:
     """
     Generate a response.
-    - With API key → GPT call with full DB context injected as system message.
-    - Without API key → fall back to rule-based DB responses.
+    - With valid API key + safe openai version → GPT call grounded in DB context.
+    - Otherwise → rule-based DB response (always works, no key needed).
     """
-    client = _get_openai_client()
     user_message = messages[-1]["content"] if messages else ""
 
-    if client is None:
-        # Phase 2 fallback
+    if not is_llm_available():
         return _db_response(user_message, user_id)
 
     # Phase 3: Build context and call the LLM
     context = build_full_context(user_id)
     system_content = SYSTEM_PROMPT_TEMPLATE.format(context=context)
 
-    # Build the messages list for the API call
-    # Keep at most last 10 turns to avoid token overflow
     history = messages[-10:] if len(messages) > 10 else messages
     api_messages = [{"role": "system", "content": system_content}] + history
 
     try:
+        client = _make_client()
         response = client.chat.completions.create(
             model=model,
             messages=api_messages,
@@ -263,30 +296,7 @@ def llm_response(
         )
         return response.choices[0].message.content or ""
     except Exception as e:
-        # Graceful fallback on any API error
         return (
             f"⚠️ AI service temporarily unavailable ({type(e).__name__}). "
             f"Falling back to database mode:\n\n{_db_response(user_message, user_id)}"
         )
-
-
-def is_llm_available() -> bool:
-    """True if OpenAI key is configured and client initialises without error."""
-    return _get_openai_client() is not None
-
-
-def llm_unavailable_reason() -> str:
-    """Human-readable reason why LLM is not available."""
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if not api_key or api_key.startswith("sk-your"):
-        return "no_key"
-    try:
-        from openai import OpenAI
-        OpenAI(api_key=api_key)
-        return ""
-    except TypeError as e:
-        if "proxies" in str(e):
-            return "version_conflict"
-        return f"init_error: {e}"
-    except Exception as e:
-        return f"error: {e}"
