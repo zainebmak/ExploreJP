@@ -2,7 +2,7 @@
 
 import streamlit as st
 from explorejp.config import PAGE_CONFIG, CUSTOM_CSS
-from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom
+from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom, auth, dashboard, settings
 
 # Page configuration
 st.set_page_config(**PAGE_CONFIG)
@@ -28,29 +28,56 @@ def main():
     if "page" not in st.session_state:
         st.session_state.page = "🏠 Home"
     
+    user = st.session_state.get("user")
+
     # Sidebar navigation
     with st.sidebar:
         st.markdown("## 🌸 ExploreJP")
         st.markdown("---")
         
-        # Simple navigation without conflicts
+        # Core navigation
         if st.button("🏠 Home", key="nav_home", use_container_width=True):
             st.session_state.page = "🏠 Home"
             if "explore_cities_action" in st.session_state:
                 del st.session_state.explore_cities_action
             if "selected_city_id" in st.session_state:
                 del st.session_state.selected_city_id
+            st.rerun()
         
         if st.button("🗺️ Explore Cities", key="nav_explore", use_container_width=True):
             st.session_state.page = "🗺️ Explore Cities"
             st.session_state.explore_cities_action = "Browse All Cities"
+            st.rerun()
+
+        if st.button("🧳 Plan Your Trip", key="nav_plan", use_container_width=True):
+            st.session_state.page = "🧳 Plan Your Trip"
+            st.rerun()
 
         if st.button("🌸 Cherry Blossom Guide", key="nav_sakura", use_container_width=True):
             st.session_state.page = "🌸 Cherry Blossom Guide"
             st.session_state.sakura_section = "home"
+            st.rerun()
         
         st.markdown("---")
-        st.markdown(f"**Current Page:** {st.session_state.page}")
+
+        # Auth section
+        if user:
+            st.markdown(f"👤 **{user['username']}**")
+            if st.button("📊 My Dashboard", key="nav_dashboard", use_container_width=True):
+                st.session_state.page = "📊 Dashboard"
+                st.rerun()
+            if st.button("⚙️ Settings", key="nav_settings", use_container_width=True):
+                st.session_state.page = "⚙️ Settings"
+                st.rerun()
+            if st.button("🚪 Log Out", key="nav_logout", use_container_width=True):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
+        else:
+            if st.button("🔑 Log In / Register", key="nav_login", use_container_width=True):
+                st.session_state.page = "🔑 Login"
+                st.rerun()
+
         st.markdown("---")
         st.markdown("### About")
         st.markdown("""
@@ -71,6 +98,12 @@ def main():
         plan_trip.show()
     elif st.session_state.page == "🌸 Cherry Blossom Guide":
         cherry_blossom.show()
+    elif st.session_state.page == "🔑 Login":
+        auth.show()
+    elif st.session_state.page == "📊 Dashboard":
+        dashboard.show()
+    elif st.session_state.page == "⚙️ Settings":
+        settings.show()
 
 if __name__ == "__main__":
     main()

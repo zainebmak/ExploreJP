@@ -16,7 +16,12 @@ def show():
     logo_path = Path(__file__).resolve().parents[2] / "data" / "logo.png"
 
     # ── Navbar row ────────────────────────────────────────────────────────────
-    col_brand, col_spacer, col_sakura, col_plan = st.columns([3, 3, 2, 2])
+    user = st.session_state.get("user")
+
+    if user:
+        col_brand, col_spacer, col_sakura, col_plan, col_dash, col_logout = st.columns([3, 2, 2, 2, 2, 2])
+    else:
+        col_brand, col_spacer, col_sakura, col_plan, col_login = st.columns([3, 3, 2, 2, 2])
 
     with col_brand:
         if logo_path.exists():
@@ -25,18 +30,58 @@ def show():
 
     with col_sakura:
         st.write("")
-        if st.button("🌸 Cherry Blossom Guide", key="nav_cherry_blossom", use_container_width=True):
+        if st.button("🌸 Cherry Blossom", key="nav_cherry_blossom", use_container_width=True):
             st.session_state.page = "🌸 Cherry Blossom Guide"
             st.session_state.sakura_section = "home"
             st.rerun()
 
     with col_plan:
         st.write("")
-        if st.button("🧳 Plan Your Trip", key="nav_plan_trip", use_container_width=True):
+        if st.button("🧳 Plan Trip", key="nav_plan_trip", use_container_width=True):
             st.session_state.page = "🧳 Plan Your Trip"
             st.rerun()
 
+    if user:
+        with col_dash:
+            st.write("")
+            if st.button("📊 Dashboard", key="nav_home_dashboard", use_container_width=True):
+                st.session_state.page = "📊 Dashboard"
+                st.rerun()
+        with col_logout:
+            st.write("")
+            if st.button("🚪 Log Out", key="nav_home_logout", use_container_width=True):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
+    else:
+        with col_login:
+            st.write("")
+            if st.button("🔑 Log In", key="nav_home_login", use_container_width=True):
+                st.session_state.page = "🔑 Login"
+                st.rerun()
+
     st.divider()
+
+    # ── Welcome banner for logged-in users ───────────────────────────────────
+    if user:
+        badges = []
+        if user.get("favorite_season"):
+            badges.append(f"🌸 **{user['favorite_season']}** season")
+        if user.get("preferred_budget"):
+            badges.append(f"💰 **{user['preferred_budget']}** budget")
+        badge_str = "  •  ".join(badges) if badges else "Set your preferences in Settings ⚙️"
+
+        with st.container(border=True):
+            c1, c2 = st.columns([4, 1])
+            with c1:
+                st.markdown(f"### 👋 Welcome back, {user['username']}!")
+                st.caption(badge_str)
+            with c2:
+                st.write("")
+                if st.button("📊 My Dashboard", key="home_dash_banner", use_container_width=True):
+                    st.session_state.page = "📊 Dashboard"
+                    st.rerun()
+        st.divider()
 
     # ── Hero row ──────────────────────────────────────────────────────────────
     col_text, col_image = st.columns([1, 1], gap="large")

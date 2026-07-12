@@ -111,7 +111,64 @@ def init_database() -> None:
             FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
         )
     """)
-    
+
+    # ── User authentication tables ────────────────────────────────────────────
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            preferred_theme TEXT DEFAULT 'light',
+            favorite_season TEXT DEFAULT '',
+            preferred_budget TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            city_id INTEGER NOT NULL,
+            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, city_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS recently_viewed (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            city_id INTEGER NOT NULL,
+            viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bucket_list (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            city_id INTEGER NOT NULL,
+            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, city_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Add user_id to itineraries if not present (migration)
+    try:
+        cursor.execute("ALTER TABLE itineraries ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+        conn.commit()
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -837,4 +894,274 @@ def get_cities_by_bloom_month(month: str) -> list[dict]:
     
     conn.close()
     
+    return [dict(row) for row in rows]
+
+
+# ── User auth functions ───────────────────────────────────────────────────────
+
+import bcrypt as _bcrypt
+
+
+def create_user(username: str, email: str, password: str) -> int | None:
+    """Create a new user. Returns user id or None if username/email taken."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    password_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+    try:
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash)
+            VALUES (?, ?, ?)
+        """, (username.strip(), email.strip().lower(), password_hash))
+        user_id = cursor.lastrowid
+        conn.commit()
+        return user_id
+    except sqlite3.IntegrityError:
+        return None
+    finally:
+        conn.close()
+
+
+def get_user_by_username(username: str) -> dict | None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username.strip(),))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def verify_password(username: str, password: str) -> dict | None:
+    """Verify credentials. Returns user dict on success, None on failure."""
+    user = get_user_by_username(username)
+    if not user:
+        return None
+    if _bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+        return user
+    return None
+
+
+def update_user_settings(user_id: int, username: str | None = None,
+                         email: str | None = None, password: str | None = None,
+                         preferred_theme: str | None = None,
+                         favorite_season: str | None = None,
+                         preferred_budget: str | None = None) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    updates, params = [], []
+    if username is not None:
+        updates.append("username = ?"); params.append(username.strip())
+    if email is not None:
+        updates.append("email = ?"); params.append(email.strip().lower())
+    if password is not None:
+        h = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+        updates.append("password_hash = ?"); params.append(h)
+    if preferred_theme is not None:
+        updates.append("preferred_theme = ?"); params.append(preferred_theme)
+    if favorite_season is not None:
+        updates.append("favorite_season = ?"); params.append(favorite_season)
+    if preferred_budget is not None:
+        updates.append("preferred_budget = ?"); params.append(preferred_budget)
+    if not updates:
+        conn.close(); return False
+    params.append(user_id)
+    try:
+        cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
+        conn.commit()
+        return cursor.rowcount > 0
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def delete_user(user_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+
+# ── User favorites ────────────────────────────────────────────────────────────
+
+def add_user_favorite(user_id: int, city_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO user_favorites (user_id, city_id) VALUES (?, ?)",
+                       (user_id, city_id))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def remove_user_favorite(user_id: int, city_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_favorites WHERE user_id = ? AND city_id = ?",
+                   (user_id, city_id))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+
+def is_user_favorite(user_id: int, city_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM user_favorites WHERE user_id = ? AND city_id = ?",
+                   (user_id, city_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+
+def get_user_favorites(user_id: int) -> list[dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT c.*, uf.date_added FROM cities c
+        JOIN user_favorites uf ON c.id = uf.city_id
+        WHERE uf.user_id = ?
+        ORDER BY uf.date_added DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_user_favorite_ids(user_id: int) -> list[int]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT city_id FROM user_favorites WHERE user_id = ? ORDER BY date_added DESC",
+                   (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [row["city_id"] for row in rows]
+
+
+# ── Recently viewed ───────────────────────────────────────────────────────────
+
+def add_recently_viewed(user_id: int, city_id: int) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Remove old entry if exists so latest bubbles to top
+    cursor.execute("DELETE FROM recently_viewed WHERE user_id = ? AND city_id = ?",
+                   (user_id, city_id))
+    cursor.execute("INSERT INTO recently_viewed (user_id, city_id) VALUES (?, ?)",
+                   (user_id, city_id))
+    # Keep only last 20 per user
+    cursor.execute("""
+        DELETE FROM recently_viewed WHERE id NOT IN (
+            SELECT id FROM recently_viewed WHERE user_id = ?
+            ORDER BY viewed_at DESC LIMIT 20
+        ) AND user_id = ?
+    """, (user_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+def get_recently_viewed(user_id: int, limit: int = 6) -> list[dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT c.*, rv.viewed_at FROM cities c
+        JOIN recently_viewed rv ON c.id = rv.city_id
+        WHERE rv.user_id = ?
+        ORDER BY rv.viewed_at DESC
+        LIMIT ?
+    """, (user_id, limit))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+# ── Bucket list ───────────────────────────────────────────────────────────────
+
+def add_to_bucket_list(user_id: int, city_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO bucket_list (user_id, city_id) VALUES (?, ?)",
+                       (user_id, city_id))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def remove_from_bucket_list(user_id: int, city_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM bucket_list WHERE user_id = ? AND city_id = ?",
+                   (user_id, city_id))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+
+def is_in_bucket_list(user_id: int, city_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM bucket_list WHERE user_id = ? AND city_id = ?",
+                   (user_id, city_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+
+def get_bucket_list(user_id: int) -> list[dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT c.*, bl.added_at FROM cities c
+        JOIN bucket_list bl ON c.id = bl.city_id
+        WHERE bl.user_id = ?
+        ORDER BY bl.added_at DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+# ── User-scoped itineraries ───────────────────────────────────────────────────
+
+def create_user_itinerary(user_id: int, name: str, start_date: str, end_date: str,
+                          season: str, interests: str, budget: float | None = None) -> int:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO itineraries (user_id, name, start_date, end_date, season, interests, budget)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (user_id, name, start_date, end_date, season, interests, budget))
+    itinerary_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return itinerary_id
+
+
+def get_user_itineraries(user_id: int) -> list[dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM itineraries WHERE user_id = ? ORDER BY created_at DESC",
+                   (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
     return [dict(row) for row in rows]

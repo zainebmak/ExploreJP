@@ -16,6 +16,8 @@ from explorejp.database import (
     clear_itinerary_cities,
     get_all_cities,
     get_cities_by_season,
+    create_user_itinerary,
+    get_user_itineraries,
 )
 
 # City coordinates for map visualization
@@ -258,14 +260,26 @@ def _show_create_trip():
                 st.error("Please fill in all required fields.")
             else:
                 interests_str = ", ".join(interests)
-                itinerary_id = create_itinerary(
-                    name=trip_name,
-                    start_date=start_date.strftime("%Y-%m-%d"),
-                    end_date=end_date.strftime("%Y-%m-%d"),
-                    season=season,
-                    interests=interests_str,
-                    budget=budget
-                )
+                uid = st.session_state.get("user", {}).get("id")
+                if uid:
+                    itinerary_id = create_user_itinerary(
+                        user_id=uid,
+                        name=trip_name,
+                        start_date=start_date.strftime("%Y-%m-%d"),
+                        end_date=end_date.strftime("%Y-%m-%d"),
+                        season=season,
+                        interests=interests_str,
+                        budget=budget,
+                    )
+                else:
+                    itinerary_id = create_itinerary(
+                        name=trip_name,
+                        start_date=start_date.strftime("%Y-%m-%d"),
+                        end_date=end_date.strftime("%Y-%m-%d"),
+                        season=season,
+                        interests=interests_str,
+                        budget=budget,
+                    )
                 st.session_state.current_itinerary_id = itinerary_id
                 st.success(f"Trip '{trip_name}' created successfully!")
                 st.rerun()
@@ -275,8 +289,12 @@ def _show_my_trips():
     """Show saved trips."""
     
     st.markdown("### 📂 My Saved Trips")
-    
-    itineraries = get_all_itineraries()
+
+    uid = st.session_state.get("user", {}).get("id") if st.session_state.get("user") else None
+    if uid:
+        itineraries = get_user_itineraries(uid)
+    else:
+        itineraries = get_all_itineraries()
     
     if not itineraries:
         st.info("No trips saved yet. Create your first trip in the 'Create Trip' tab.")
