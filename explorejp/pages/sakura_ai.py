@@ -198,13 +198,13 @@ def render_api_key_sidebar():
         return
 
     with st.sidebar.expander("🔑 Enable AI mode", expanded=False):
-        st.caption("Enter your OpenAI API key to unlock full conversational AI.")
-        key = st.text_input("OpenAI API Key", type="password",
-                            placeholder="sk-...", key="sidebar_openai_key")
-        if st.button("Activate", key="activate_openai", use_container_width=True):
-            if key and key.startswith("sk-"):
-                os.environ["OPENAI_API_KEY"] = key
+        st.caption("Enter your Gemini API key to unlock full conversational AI. Get a free key at aistudio.google.com")
+        key = st.text_input("Gemini API Key", type="password",
+                            placeholder="AIza...", key="sidebar_gemini_key")
+        if st.button("Activate", key="activate_gemini", use_container_width=True):
+            if key and len(key) > 10:
+                os.environ["GEMINI_API_KEY"] = key
                 st.success("AI mode activated!")
                 st.rerun()
             else:
-                st.error("Invalid key format — should start with sk-")
+                st.error("Invalid key — paste the full key from Google AI Studio")

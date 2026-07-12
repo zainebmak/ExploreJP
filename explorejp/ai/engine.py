@@ -3,7 +3,7 @@ engine.py
 Sakura AI engine.
 
 Phase 2: Pure database-driven responses (always available, no API key needed).
-Phase 3: LLM-powered conversational responses grounded in DB context (requires OPENAI_API_KEY).
+Phase 3: LLM-powered conversational responses grounded in DB context (requires GEMINI_API_KEY).
 
 The engine auto-detects which mode to use based on whether an API key is configured.
 """
@@ -214,89 +214,84 @@ def _db_response(message: str, user_id: int | None) -> str:
     )
 
 
-# ── LLM engine (Phase 3) ──────────────────────────────────────────────────────
-
-def _openai_version() -> tuple[int, int] | None:
-    """Return (major, minor) of installed openai, or None if not installed."""
-    try:
-        import openai as _oai
-        parts = _oai.__version__.split(".")
-        return (int(parts[0]), int(parts[1]))
-    except Exception:
-        return None
-
+# ── LLM engine (Phase 3) — Google Gemini ─────────────────────────────────────
 
 def is_llm_available() -> bool:
     """
-    True when:
-    1. OPENAI_API_KEY is set to a real key (not the placeholder)
-    2. openai >= 1.60 is installed (avoids the httpx proxies conflict)
-    Does NOT instantiate the client — safe to call on every render.
+    True when GEMINI_API_KEY is set and google-genai is installed.
+    Never instantiates a client — safe to call on every render.
     """
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if not api_key or api_key.startswith("sk-your"):
+    key = os.environ.get("GEMINI_API_KEY", "")
+    if not key or key.startswith("your-"):
         return False
-    ver = _openai_version()
-    if ver is None:
+    try:
+        import google.genai  # noqa: F401
+        return True
+    except ImportError:
         return False
-    # openai 1.60+ or 2.x are safe with httpx 0.28
-    if ver[0] == 1 and ver[1] < 60:
-        return False
-    return True
 
 
 def llm_unavailable_reason() -> str:
     """Human-readable reason why LLM is not available."""
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if not api_key or api_key.startswith("sk-your"):
+    key = os.environ.get("GEMINI_API_KEY", "")
+    if not key or key.startswith("your-"):
         return "no_key"
-    ver = _openai_version()
-    if ver is None:
+    try:
+        import google.genai  # noqa: F401
+        return ""
+    except ImportError:
         return "not_installed"
-    if ver[0] == 1 and ver[1] < 60:
-        return "version_conflict"
-    return ""
-
-
-def _make_client():
-    """Instantiate OpenAI client. Only call this when actually sending a request."""
-    from openai import OpenAI
-    return OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
 
 
 def llm_response(
     messages: list[dict],
     user_id: int | None = None,
-    model: str = "gpt-4o-mini",
+    model: str = "gemini-2.0-flash",
 ) -> str:
     """
-    Generate a response.
-    - With valid API key + safe openai version → GPT call grounded in DB context.
-    - Otherwise → rule-based DB response (always works, no key needed).
+    Generate a response using Gemini.
+    Falls back to rule-based DB responses when no key is configured.
     """
     user_message = messages[-1]["content"] if messages else ""
 
     if not is_llm_available():
         return _db_response(user_message, user_id)
 
-    # Phase 3: Build context and call the LLM
-    context = build_full_context(user_id)
-    system_content = SYSTEM_PROMPT_TEMPLATE.format(context=context)
-
-    history = messages[-10:] if len(messages) > 10 else messages
-    api_messages = [{"role": "system", "content": system_content}] + history
-
     try:
-        client = _make_client()
-        response = client.chat.completions.create(
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+        # Build grounding context
+        context = build_full_context(user_id)
+        system_instruction = SYSTEM_PROMPT_TEMPLATE.format(context=context)
+
+        # Convert message history to Gemini Content format
+        # Keep last 10 turns; skip the last user message (sent separately)
+        history = messages[-11:-1] if len(messages) > 1 else []
+        gemini_history = []
+        for m in history:
+            role = "user" if m["role"] == "user" else "model"
+            gemini_history.append(
+                types.Content(role=role, parts=[types.Part(text=m["content"])])
+            )
+
+        response = client.models.generate_content(
             model=model,
-            messages=api_messages,
-            temperature=0.7,
-            max_tokens=800,
+            contents=gemini_history + [
+                types.Content(role="user", parts=[types.Part(text=user_message)])
+            ],
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.7,
+                max_output_tokens=800,
+            ),
         )
-        return response.choices[0].message.content or ""
+        return response.text or ""
+
     except Exception as e:
         return (
-            f"⚠️ AI service temporarily unavailable ({type(e).__name__}). "
+            f"⚠️ AI service temporarily unavailable ({type(e).__name__}: {e}). "
             f"Falling back to database mode:\n\n{_db_response(user_message, user_id)}"
         )
