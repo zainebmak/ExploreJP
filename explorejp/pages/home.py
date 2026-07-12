@@ -16,15 +16,22 @@ def show():
     logo_path = Path(__file__).resolve().parents[2] / "data" / "logo.png"
 
     # ── Navbar row ────────────────────────────────────────────────────────────
-    col_brand, col_spacer, col_plan = st.columns([3, 5, 2])
+    col_brand, col_spacer, col_sakura, col_plan = st.columns([3, 3, 2, 2])
 
     with col_brand:
         if logo_path.exists():
             st.image(str(logo_path), width=44)
         st.markdown("### ExploreJP")
 
+    with col_sakura:
+        st.write("")
+        if st.button("🌸 Cherry Blossom Guide", key="nav_cherry_blossom", use_container_width=True):
+            st.session_state.page = "🌸 Cherry Blossom Guide"
+            st.session_state.sakura_section = "home"
+            st.rerun()
+
     with col_plan:
-        st.write("")  # vertical nudge
+        st.write("")
         if st.button("🧳 Plan Your Trip", key="nav_plan_trip", use_container_width=True):
             st.session_state.page = "🧳 Plan Your Trip"
             st.rerun()

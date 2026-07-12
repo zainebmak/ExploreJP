@@ -67,6 +67,176 @@ def init_database() -> None:
         )
     """)
     
+    # Create cherry_blossom_cities table for sakura-specific data
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cherry_blossom_cities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            city_id INTEGER NOT NULL UNIQUE,
+            peak_bloom_start TEXT,
+            peak_bloom_end TEXT,
+            latitude REAL,
+            longitude REAL,
+            crowd_level TEXT,
+            travel_tips TEXT,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+    
+    # Create sakura_spots table for best viewing locations
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sakura_spots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            city_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            image_url TEXT,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Add nearby_attractions column if it doesn't exist yet (migration)
+    try:
+        cursor.execute("ALTER TABLE cherry_blossom_cities ADD COLUMN nearby_attractions TEXT")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    
+    # Create sakura_forecasts table for bloom predictions
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sakura_forecasts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            city_id INTEGER NOT NULL,
+            forecast_date TEXT NOT NULL,
+            bloom_percentage INTEGER,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+    
+    conn.commit()
+    conn.close()
+
+    # Seed cherry blossom data if not already present
+    _seed_cherry_blossom_data()
+
+
+def _seed_cherry_blossom_data() -> None:
+    """Seed sample cherry blossom data if the tables are empty."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Only seed if no data exists yet
+    cursor.execute("SELECT COUNT(*) as count FROM cherry_blossom_cities")
+    if cursor.fetchone()["count"] > 0:
+        conn.close()
+        return
+
+    # ── cherry_blossom_cities ─────────────────────────────────────────────────
+    cb_cities = [
+        # city_id, peak_start, peak_end, lat, lon, crowd_level, tips, nearby_attractions
+        (1, "2024-03-25", "2024-04-05", 35.6762, 139.6503, "Very High",
+         "Visit Shinjuku Gyoen or Ueno Park early morning to beat the crowds.",
+         "Senso-ji Temple, Shibuya Crossing, Tokyo Skytree, Meiji Shrine"),
+        (2, "2024-04-01", "2024-04-10", 35.0116, 135.7681, "Very High",
+         "Philosopher's Path and Maruyama Park are best at dawn.",
+         "Fushimi Inari Shrine, Kinkaku-ji (Golden Pavilion), Arashiyama Bamboo Grove, Gion District"),
+        (3, "2024-03-28", "2024-04-08", 34.6937, 135.5023, "High",
+         "Osaka Castle Park is a local favourite with fewer tourists than Kyoto.",
+         "Dotonbori, Universal Studios Japan, Shinsekai District, Kuromon Market"),
+        (4, "2024-04-01", "2024-04-12", 34.3853, 132.4553, "Medium",
+         "Hiroshima Peace Park sakura creates a powerful and moving atmosphere.",
+         "Peace Memorial Museum, Miyajima Island, Itsukushima Shrine, Atomic Bomb Dome"),
+        (5, "2024-04-25", "2024-05-05", 43.0618, 141.3545, "Low",
+         "Hokkaido blooms late — perfect for those who miss the southern season.",
+         "Odori Park, Sapporo Beer Museum, Hokkaido University, Clock Tower"),
+        (6, "2024-03-25", "2024-04-05", 33.5904, 130.4017, "Medium",
+         "Maizuru Park inside Fukuoka Castle ruins is the top spot.",
+         "Dazaifu Tenmangu Shrine, Canal City, Hakata Old Town, Ohori Park"),
+        (7, "2024-04-01", "2024-04-10", 34.6851, 135.8048, "Medium",
+         "Watch deer wander under blossoming trees in Nara Park.",
+         "Todai-ji Temple, Kasuga Grand Shrine, Horyu-ji Temple, Isuien Garden"),
+        (8, "2024-04-10", "2024-04-20", 38.2682, 140.8694, "Low",
+         "Sendai is less crowded — enjoy the Western-style zelkova avenues too.",
+         "Zuihoden Mausoleum, Sendai Castle Ruins, Tanabata Festival sites, Matsushima Bay"),
+    ]
+    cursor.executemany("""
+        INSERT OR IGNORE INTO cherry_blossom_cities
+        (city_id, peak_bloom_start, peak_bloom_end, latitude, longitude, crowd_level, travel_tips, nearby_attractions)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, cb_cities)
+
+    # Backfill nearby_attractions for existing rows that have NULL
+    attractions_update = [
+        ("Senso-ji Temple, Shibuya Crossing, Tokyo Skytree, Meiji Shrine", 1),
+        ("Fushimi Inari Shrine, Kinkaku-ji (Golden Pavilion), Arashiyama Bamboo Grove, Gion District", 2),
+        ("Dotonbori, Universal Studios Japan, Shinsekai District, Kuromon Market", 3),
+        ("Peace Memorial Museum, Miyajima Island, Itsukushima Shrine, Atomic Bomb Dome", 4),
+        ("Odori Park, Sapporo Beer Museum, Hokkaido University, Clock Tower", 5),
+        ("Dazaifu Tenmangu Shrine, Canal City, Hakata Old Town, Ohori Park", 6),
+        ("Todai-ji Temple, Kasuga Grand Shrine, Horyu-ji Temple, Isuien Garden", 7),
+        ("Zuihoden Mausoleum, Sendai Castle Ruins, Tanabata Festival sites, Matsushima Bay", 8),
+    ]
+    cursor.executemany("""
+        UPDATE cherry_blossom_cities SET nearby_attractions = ?
+        WHERE city_id = ? AND (nearby_attractions IS NULL OR nearby_attractions = '')
+    """, attractions_update)
+
+    # ── sakura_spots ──────────────────────────────────────────────────────────
+    spots = [
+        # city_id, name, description, image_url
+        (1, "Shinjuku Gyoen", "One of Japan's largest parks with 1,100+ cherry trees.",
+         "https://i.pinimg.com/1200x/7b/0a/3b/7b0a3bdce4604379fa847476756b2050.jpg"),
+        (1, "Ueno Park", "Tokyo's most popular hanami destination.",
+         "https://i.pinimg.com/736x/02/f6/24/02f6246888da9cfda7024d52b62f7463.jpg"),
+        (1, "Chidorigafuchi", "Stunning canal lined with over 260 cherry trees.",
+         "https://i.pinimg.com/1200x/c6/70/d9/c670d985b022020c837b5186259f3aa7.jpg"),
+        (2, "Philosopher's Path", "A stone path lined with hundreds of cherry trees.",
+         "https://i.pinimg.com/1200x/3d/c5/e9/3dc5e90782bcb686b53b20290b9258f9.jpg"),
+        (2, "Maruyama Park", "Kyoto's most famous hanami spot with a weeping cherry centrepiece.",
+         "https://i.pinimg.com/1200x/e9/d6/38/e9d6381765807102cb75b3a52a15d9fe.jpg"),
+        (3, "Osaka Castle Park", "500 cherry trees surround the iconic castle.",
+         "https://i.pinimg.com/1200x/c4/d3/4e/c4d34e7da3d9d560186ce665a15e3de4.jpg"),
+        (4, "Hiroshima Peace Park", "Sakura blossoms alongside the Peace Memorial.",
+         "https://i.pinimg.com/1200x/ab/63/76/ab6376e22553ef8d84cda90fd56eea0b.jpg"),
+        (5, "Maruyama Park Sapporo", "Hokkaido's most beloved cherry blossom park.",
+         "https://i.pinimg.com/1200x/93/70/4c/93704c6171b38186e5466718f64d3c2d.jpg"),
+        (6, "Maizuru Park", "Ruins of Fukuoka Castle surrounded by cherry trees.",
+         "https://i.pinimg.com/1200x/6b/35/f7/6b35f7ad90a61fa78141dbfef75d03ea.jpg"),
+        (7, "Nara Park", "Walk among free-roaming deer under cherry blossoms.",
+         "https://i.pinimg.com/736x/e2/9e/2d/e29e2dfc8e4151fe394d1ba75b1816bf.jpg"),
+        (8, "Tsutsujigaoka Park", "Sendai's top spot with 1,200 cherry trees.",
+         "https://i.pinimg.com/1200x/c8/49/f1/c849f1a39c73a15a906107bd0c67b28c.jpg"),
+    ]
+    cursor.executemany("""
+        INSERT OR IGNORE INTO sakura_spots (city_id, name, description, image_url)
+        VALUES (?, ?, ?, ?)
+    """, spots)
+
+    # ── sakura_forecasts (daily entries for peak windows) ─────────────────────
+    import datetime
+    forecasts = []
+    # For each city, generate daily forecast entries spanning ±3 weeks around peak
+    peak_dates = {
+        1: datetime.date(2024, 3, 30),
+        2: datetime.date(2024, 4, 5),
+        3: datetime.date(2024, 4, 2),
+        4: datetime.date(2024, 4, 6),
+        5: datetime.date(2024, 4, 30),
+        6: datetime.date(2024, 3, 30),
+        7: datetime.date(2024, 4, 5),
+        8: datetime.date(2024, 4, 15),
+    }
+    for city_id, peak in peak_dates.items():
+        for delta in range(-20, 21):
+            d = peak + datetime.timedelta(days=delta)
+            # Bell-curve percentage centred on peak
+            pct = max(0, int(100 - (abs(delta) ** 1.8)))
+            forecasts.append((city_id, d.strftime("%Y-%m-%d"), pct))
+
+    cursor.executemany("""
+        INSERT OR IGNORE INTO sakura_forecasts (city_id, forecast_date, bloom_percentage)
+        VALUES (?, ?, ?)
+    """, forecasts)
+
     conn.commit()
     conn.close()
 
@@ -523,3 +693,148 @@ def clear_itinerary_cities(itinerary_id: int) -> bool:
     conn.close()
     
     return rows_affected > 0
+
+
+# Cherry Blossom functions
+def add_cherry_blossom_city(city_id: int, peak_bloom_start: str, peak_bloom_end: str, 
+                           latitude: float, longitude: float, crowd_level: str, 
+                           travel_tips: str) -> int:
+    """Add cherry blossom data for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO cherry_blossom_cities 
+        (city_id, peak_bloom_start, peak_bloom_end, latitude, longitude, crowd_level, travel_tips)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (city_id, peak_bloom_start, peak_bloom_end, latitude, longitude, crowd_level, travel_tips))
+    
+    cb_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return cb_id
+
+
+def get_cherry_blossom_cities() -> list[dict]:
+    """Get all cities with cherry blossom data."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT cbc.*, c.name, c.region 
+        FROM cherry_blossom_cities cbc
+        JOIN cities c ON cbc.city_id = c.id
+        ORDER BY cbc.peak_bloom_start
+    """)
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_cherry_blossom_city_by_id(city_id: int) -> dict | None:
+    """Get cherry blossom data for a specific city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT cbc.*, c.name, c.region 
+        FROM cherry_blossom_cities cbc
+        JOIN cities c ON cbc.city_id = c.id
+        WHERE cbc.city_id = ?
+    """, (city_id,))
+    row = cursor.fetchone()
+    
+    conn.close()
+    
+    return dict(row) if row else None
+
+
+def add_sakura_spot(city_id: int, name: str, description: str, image_url: str) -> int:
+    """Add a sakura viewing spot for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO sakura_spots (city_id, name, description, image_url)
+        VALUES (?, ?, ?, ?)
+    """, (city_id, name, description, image_url))
+    
+    spot_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return spot_id
+
+
+def get_sakura_spots(city_id: int) -> list[dict]:
+    """Get all sakura viewing spots for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT * FROM sakura_spots 
+        WHERE city_id = ?
+        ORDER BY id
+    """, (city_id,))
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def add_sakura_forecast(city_id: int, forecast_date: str, bloom_percentage: int) -> int:
+    """Add a bloom forecast for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO sakura_forecasts (city_id, forecast_date, bloom_percentage)
+        VALUES (?, ?, ?)
+    """, (city_id, forecast_date, bloom_percentage))
+    
+    forecast_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return forecast_id
+
+
+def get_sakura_forecast(city_id: int, forecast_date: str) -> dict | None:
+    """Get bloom forecast for a city on a specific date."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT sf.*, c.name 
+        FROM sakura_forecasts sf
+        JOIN cities c ON sf.city_id = c.id
+        WHERE sf.city_id = ? AND sf.forecast_date = ?
+    """, (city_id, forecast_date))
+    row = cursor.fetchone()
+    
+    conn.close()
+    
+    return dict(row) if row else None
+
+
+def get_cities_by_bloom_month(month: str) -> list[dict]:
+    """Get cities that have peak bloom in a specific month."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT cbc.*, c.name, c.region 
+        FROM cherry_blossom_cities cbc
+        JOIN cities c ON cbc.city_id = c.id
+        WHERE strftime('%m', cbc.peak_bloom_start) = ?
+        ORDER BY cbc.peak_bloom_start
+    """, (month,))
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]

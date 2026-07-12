@@ -2,7 +2,7 @@
 
 import streamlit as st
 from explorejp.config import PAGE_CONFIG, CUSTOM_CSS
-from explorejp.pages import home, explore_cities, plan_trip
+from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom
 
 # Page configuration
 st.set_page_config(**PAGE_CONFIG)
@@ -44,6 +44,10 @@ def main():
         if st.button("🗺️ Explore Cities", key="nav_explore", use_container_width=True):
             st.session_state.page = "🗺️ Explore Cities"
             st.session_state.explore_cities_action = "Browse All Cities"
+
+        if st.button("🌸 Cherry Blossom Guide", key="nav_sakura", use_container_width=True):
+            st.session_state.page = "🌸 Cherry Blossom Guide"
+            st.session_state.sakura_section = "home"
         
         st.markdown("---")
         st.markdown(f"**Current Page:** {st.session_state.page}")
@@ -65,6 +69,8 @@ def main():
         explore_cities.show()
     elif st.session_state.page == "🧳 Plan Your Trip":
         plan_trip.show()
+    elif st.session_state.page == "🌸 Cherry Blossom Guide":
+        cherry_blossom.show()
 
 if __name__ == "__main__":
     main()
