@@ -1,8 +1,16 @@
 """Streamlit app for ExploreJP - Discover Japan."""
 
+import os
 import streamlit as st
 from explorejp.config import PAGE_CONFIG, CUSTOM_CSS
-from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom, auth, dashboard, settings
+from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom, auth, dashboard, settings, sakura_ai
+
+# Load .env for OPENAI_API_KEY (silently skip if python-dotenv not installed)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Page configuration
 st.set_page_config(**PAGE_CONFIG)
@@ -57,6 +65,10 @@ def main():
             st.session_state.page = "🌸 Cherry Blossom Guide"
             st.session_state.sakura_section = "home"
             st.rerun()
+
+        if st.button("🤖 Sakura AI", key="nav_sakura_ai", use_container_width=True):
+            st.session_state.page = "🤖 Sakura AI"
+            st.rerun()
         
         st.markdown("---")
 
@@ -88,6 +100,10 @@ def main():
         - View interactive statistics
         - Plan your perfect trip
         """)
+
+        # Sakura AI — API key widget (only shown on AI page or when key not set)
+        if st.session_state.get("page") == "🤖 Sakura AI":
+            sakura_ai.render_api_key_sidebar()
     
     # Page routing
     if st.session_state.page == "🏠 Home":
@@ -104,6 +120,8 @@ def main():
         dashboard.show()
     elif st.session_state.page == "⚙️ Settings":
         settings.show()
+    elif st.session_state.page == "🤖 Sakura AI":
+        sakura_ai.show()
 
 if __name__ == "__main__":
     main()
