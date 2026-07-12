@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import streamlit as st
 
-from explorejp.ai.engine import llm_response, is_llm_available
+from explorejp.ai.engine import llm_response, is_llm_available, llm_unavailable_reason
 from explorejp.ai.actions import parse_and_execute
 
 
@@ -103,14 +103,23 @@ def _render_header(user):
 
 
 def _render_mode_badge():
-    if is_llm_available():
+    reason = llm_unavailable_reason()
+    if not reason:
         st.success("🤖 AI mode active — conversational responses powered by GPT", icon="✅")
-    else:
+    elif reason == "version_conflict":
+        st.warning(
+            "⚠️ OpenAI version conflict detected. Run this command in your terminal to fix it, then restart:\n\n"
+            "```\n.venv\\Scripts\\pip install --upgrade openai httpx\n```",
+            icon="⚠️",
+        )
+    elif reason == "no_key":
         st.info(
             "📚 Database mode — answering from ExploreJP's own data. "
             "Add your `OPENAI_API_KEY` to `.env` to enable full AI conversations.",
             icon="ℹ️",
         )
+    else:
+        st.warning(f"⚠️ AI unavailable: {reason}. Running in database mode.", icon="⚠️")
 
 
 def _render_chips(user_id: int | None):
@@ -174,9 +183,18 @@ def _generate_and_store(user_message: str, user_id: int | None):
 def render_api_key_sidebar():
     """
     Small sidebar widget to set OPENAI_API_KEY at runtime without restarting.
-    Only shown when no key is already configured.
+    Shows a fix command if a version conflict is detected.
     """
-    if is_llm_available():
+    reason = llm_unavailable_reason()
+
+    if not reason:
+        return  # AI is working fine, nothing to show
+
+    if reason == "version_conflict":
+        with st.sidebar.expander("⚠️ Fix OpenAI version", expanded=True):
+            st.error("Version conflict with httpx. Run in terminal:")
+            st.code(".venv\\Scripts\\pip install --upgrade openai httpx", language="bash")
+            st.caption("Then restart Streamlit.")
         return
 
     with st.sidebar.expander("🔑 Enable AI mode", expanded=False):

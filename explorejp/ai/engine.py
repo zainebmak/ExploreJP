@@ -217,14 +217,14 @@ def _db_response(message: str, user_id: int | None) -> str:
 # ── LLM engine (Phase 3) ──────────────────────────────────────────────────────
 
 def _get_openai_client():
-    """Return an OpenAI client if a key is configured, else None."""
+    """Return an OpenAI client if a key is configured, else None. Never raises."""
     try:
-        from openai import OpenAI
         api_key = os.environ.get("OPENAI_API_KEY", "")
         if not api_key or api_key.startswith("sk-your"):
             return None
+        from openai import OpenAI
         return OpenAI(api_key=api_key)
-    except ImportError:
+    except Exception:
         return None
 
 
@@ -271,5 +271,22 @@ def llm_response(
 
 
 def is_llm_available() -> bool:
-    """True if OpenAI key is configured and openai package is installed."""
+    """True if OpenAI key is configured and client initialises without error."""
     return _get_openai_client() is not None
+
+
+def llm_unavailable_reason() -> str:
+    """Human-readable reason why LLM is not available."""
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key or api_key.startswith("sk-your"):
+        return "no_key"
+    try:
+        from openai import OpenAI
+        OpenAI(api_key=api_key)
+        return ""
+    except TypeError as e:
+        if "proxies" in str(e):
+            return "version_conflict"
+        return f"init_error: {e}"
+    except Exception as e:
+        return f"error: {e}"
