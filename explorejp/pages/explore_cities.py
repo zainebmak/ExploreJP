@@ -19,6 +19,16 @@ from explorejp.database import (
     get_city_by_id,
     get_cities_count_by_region,
     get_cities_count_by_season,
+    add_user_favorite,
+    remove_user_favorite,
+    is_user_favorite,
+    get_user_favorites,
+    get_user_favorite_ids,
+    add_recently_viewed,
+    add_to_bucket_list,
+    remove_from_bucket_list,
+    is_in_bucket_list,
+    get_bucket_list,
 )
 from explorejp.pages.data_visualizations import (
     get_cities_df,
@@ -42,6 +52,36 @@ CITY_IMAGE_URLS = {
 
 def _get_city_image_url(city_name: str) -> str:
     return CITY_IMAGE_URLS.get(city_name, "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=800&q=80")
+
+
+def _current_user_id() -> int | None:
+    """Return logged-in user's id, or None if guest."""
+    user = st.session_state.get("user")
+    return user["id"] if user else None
+
+
+def _fav_ids() -> set:
+    """Return set of favorite city ids for the current user (int)."""
+    uid = _current_user_id()
+    if uid:
+        return set(get_user_favorite_ids(uid))
+    return set(int(i) for i in get_favorite_ids())
+
+
+def _add_fav(city_id: int) -> None:
+    uid = _current_user_id()
+    if uid:
+        add_user_favorite(uid, city_id)
+    else:
+        add_favorite(city_id)
+
+
+def _remove_fav(city_id: int) -> None:
+    uid = _current_user_id()
+    if uid:
+        remove_user_favorite(uid, city_id)
+    else:
+        remove_favorite(city_id)
 
 
 def _favorite_button_label(city_id, favorite_ids) -> str:
@@ -121,7 +161,7 @@ def show() -> None:
         total_cities=len(get_all_cities()),
         regions=len(get_all_regions()),
         seasons=len(get_all_seasons()),
-        favorites_count=len(get_favorite_ids()),
+        favorites_count=len(_fav_ids()),
     )
 
     st.markdown("<br/>", unsafe_allow_html=True)
@@ -155,7 +195,7 @@ def show() -> None:
 
 def _show_browse_all_cities() -> None:
     all_cities = get_all_cities()
-    favorite_ids = set(get_favorite_ids())
+    favorite_ids = _fav_ids()
 
     # Enhanced filter section
     st.markdown('<div class="filter-section">', unsafe_allow_html=True)
@@ -215,10 +255,10 @@ def _show_browse_all_cities() -> None:
                 with btn_col2:
                     if st.button(fav_icon, key=f"fav_{city['id']}", use_container_width=True):
                         if city["id"] in favorite_ids:
-                            remove_favorite(city["id"])
+                            _remove_fav(city["id"])
                             st.toast(f"Removed {city['name']} from favorites", icon="💔")
                         else:
-                            add_favorite(city["id"])
+                            _add_fav(city["id"])
                             st.toast(f"Added {city['name']} to favorites", icon="❤️")
                         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -234,11 +274,15 @@ def _show_city_details() -> None:
     if not city:
         return
 
-    favorite_ids = set(get_favorite_ids())
+    # Record recently viewed
+    uid = _current_user_id()
+    if uid:
+        add_recently_viewed(uid, city["id"])
+
+    favorite_ids = _fav_ids()
     city = dict(city)
     known_for_list = city["known_for"].split("|")
 
-    # Use expander for better UX - auto-expanded when selected
     with st.expander(f"📍 {city['name']} - City Details", expanded=True):
         col1, col2 = st.columns([2, 1])
         with col1:
@@ -248,24 +292,37 @@ def _show_city_details() -> None:
             st.markdown(f'**🌸 Best Season:** {city["best_season"]}')
             st.markdown(f'**👥 Population:** {city["population"]}')
             st.markdown(f'**💰 Cost of Living:** {city["cost_of_living"]}')
-        
+
         with col2:
             st.markdown('### Known For')
             for item in known_for_list:
                 st.markdown(f"- {item}")
-            
+
             st.markdown("---")
-            is_favorite = city["id"] in favorite_ids
-            fav_label = "💖 Remove from Favorites" if is_favorite else "🤍 Add to Favorites"
+            is_fav = city["id"] in favorite_ids
+            fav_label = "💖 Remove from Favorites" if is_fav else "🤍 Add to Favorites"
             if st.button(fav_label, key=f"detail_fav_{city['id']}", use_container_width=True):
-                if city["id"] in favorite_ids:
-                    remove_favorite(city["id"])
+                if is_fav:
+                    _remove_fav(city["id"])
                     st.toast(f"Removed {city['name']} from favorites", icon="💔")
                 else:
-                    add_favorite(city["id"])
+                    _add_fav(city["id"])
                     st.toast(f"Added {city['name']} to favorites", icon="❤️")
                 st.rerun()
-        
+
+            # Bucket list button (only for logged-in users)
+            if uid:
+                in_bl = is_in_bucket_list(uid, city["id"])
+                bl_label = "🌸 In Bucket List" if in_bl else "🌸 Add to Bucket List"
+                if st.button(bl_label, key=f"detail_bl_{city['id']}", use_container_width=True):
+                    if in_bl:
+                        remove_from_bucket_list(uid, city["id"])
+                        st.toast(f"Removed {city['name']} from bucket list", icon="🗑️")
+                    else:
+                        add_to_bucket_list(uid, city["id"])
+                        st.toast(f"Added {city['name']} to bucket list!", icon="🌸")
+                    st.rerun()
+
         st.markdown("---")
         if st.button("✕ Close Details", key="close_details", use_container_width=True):
             del st.session_state.selected_city_id
@@ -286,7 +343,7 @@ def _show_discover_city() -> None:
         st.markdown('<div class="empty-favorites"><div class="empty-icon">🔍</div><h3>No cities found</h3><p>Try a different name or check your spelling.<br/>We have cities from all regions of Japan!</p></div>', unsafe_allow_html=True)
         return
 
-    favorite_ids = set(get_favorite_ids())
+    favorite_ids = _fav_ids()
     
     st.markdown(f'<div class="results-count">Found <strong>{len(results)}</strong> matching {("city" if len(results) == 1 else "cities")}</div>', unsafe_allow_html=True)
     
@@ -294,14 +351,14 @@ def _show_discover_city() -> None:
         known_for_formatted = city["known_for"].replace("|", " • ")
         st.markdown(f'<div class="search-result-card"><h3 class="result-city-name">🏙️ {city["name"]}</h3><p class="result-info"><strong>📍 Region:</strong> {city["region"]} | <strong>🌸 Best Season:</strong> {city["best_season"]} | <strong>💰 Cost:</strong> {city["cost_of_living"]} | <strong>👥 Population:</strong> {city["population"]}</p><p class="result-desc">{known_for_formatted}</p></div>', unsafe_allow_html=True)
         
-        is_favorite = city["id"] in favorite_ids
-        fav_label = "💖 Saved to My Japan" if is_favorite else "🤍 Save to My Japan"
+        is_fav = city["id"] in favorite_ids
+        fav_label = "💖 Saved to My Japan" if is_fav else "🤍 Save to My Japan"
         if st.button(fav_label, key=f"discover_fav_{city['id']}", use_container_width=True):
-            if city["id"] in favorite_ids:
-                remove_favorite(city["id"])
+            if is_fav:
+                _remove_fav(city["id"])
                 st.toast(f"Removed {city['name']} from favorites", icon="💔")
             else:
-                add_favorite(city["id"])
+                _add_fav(city["id"])
                 st.toast(f"Added {city['name']} to favorites", icon="❤️")
             st.rerun()
         st.markdown("<br/>", unsafe_allow_html=True)
@@ -358,7 +415,8 @@ def _show_explore_by_season() -> None:
 
 
 def _show_my_japan() -> None:
-    favorites_list = get_favorites()
+    uid = _current_user_id()
+    favorites_list = get_user_favorites(uid) if uid else get_favorites()
     
     if not favorites_list:
         st.markdown('<div class="empty-favorites"><div class="empty-icon">❤️</div><h3>Your My Japan list is empty</h3><p>Start adding cities to build your perfect Japan itinerary!<br/>Explore cities and click the 🤍 button to save your favorites.</p></div>', unsafe_allow_html=True)
@@ -375,7 +433,7 @@ def _show_my_japan() -> None:
                 st.markdown(f'<div class="favorite-city-card"><img class="favorite-city-image" src="{_get_city_image_url(city["name"])}" alt="{city["name"]}"><div class="favorite-city-content"><h3 class="favorite-city-name">{city["name"]}</h3><div class="favorite-city-badges"><span class="enhanced-badge">📍 {city["region"]}</span><span class="enhanced-badge">🌸 {city["best_season"]}</span><span class="enhanced-badge">💰 {city["cost_of_living"]}</span></div><p class="favorite-city-desc">{known_for}</p></div></div>', unsafe_allow_html=True)
                 
                 if st.button("💔 Remove from Favorites", key=f"myjapan_remove_{city['id']}", use_container_width=True):
-                    remove_favorite(city['id'])
+                    _remove_fav(city['id'])
                     st.toast(f"Removed {city['name']} from favorites", icon="💔")
                     st.rerun()
 

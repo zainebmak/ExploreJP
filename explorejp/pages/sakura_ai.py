@@ -105,17 +105,11 @@ def _render_header(user):
 def _render_mode_badge():
     reason = llm_unavailable_reason()
     if not reason:
-        st.success("🤖 AI mode active — conversational responses powered by GPT", icon="✅")
-    elif reason == "version_conflict":
-        st.warning(
-            "⚠️ OpenAI version conflict detected. Run this command in your terminal to fix it, then restart:\n\n"
-            "```\n.venv\\Scripts\\pip install --upgrade openai httpx\n```",
-            icon="⚠️",
-        )
+        st.success("🤖 AI mode active — conversational responses powered by Groq", icon="✅")
     elif reason == "no_key":
         st.info(
             "📚 Database mode — answering from ExploreJP's own data. "
-            "Add your `OPENAI_API_KEY` to `.env` to enable full AI conversations.",
+            "Add your `GROQ_API_KEY` to `.env` to enable full AI conversations.",
             icon="ℹ️",
         )
     else:
@@ -182,29 +176,21 @@ def _generate_and_store(user_message: str, user_id: int | None):
 
 def render_api_key_sidebar():
     """
-    Small sidebar widget to set OPENAI_API_KEY at runtime without restarting.
-    Shows a fix command if a version conflict is detected.
+    Small sidebar widget to set GROQ_API_KEY at runtime without restarting.
     """
     reason = llm_unavailable_reason()
 
     if not reason:
         return  # AI is working fine, nothing to show
 
-    if reason == "version_conflict":
-        with st.sidebar.expander("⚠️ Fix OpenAI version", expanded=True):
-            st.error("Version conflict with httpx. Run in terminal:")
-            st.code(".venv\\Scripts\\pip install --upgrade openai httpx", language="bash")
-            st.caption("Then restart Streamlit.")
-        return
-
     with st.sidebar.expander("🔑 Enable AI mode", expanded=False):
-        st.caption("Enter your Gemini API key to unlock full conversational AI. Get a free key at aistudio.google.com")
-        key = st.text_input("Gemini API Key", type="password",
-                            placeholder="AIza...", key="sidebar_gemini_key")
-        if st.button("Activate", key="activate_gemini", use_container_width=True):
-            if key and len(key) > 10:
-                os.environ["GEMINI_API_KEY"] = key
+        st.caption("Enter your Groq API key. Free at console.groq.com — no credit card needed.")
+        key = st.text_input("Groq API Key", type="password",
+                            placeholder="gsk_...", key="sidebar_groq_key")
+        if st.button("Activate", key="activate_groq", use_container_width=True):
+            if key and key.startswith("gsk_"):
+                os.environ["GROQ_API_KEY"] = key
                 st.success("AI mode activated!")
                 st.rerun()
             else:
-                st.error("Invalid key — paste the full key from Google AI Studio")
+                st.error("Invalid key — Groq keys start with gsk_")

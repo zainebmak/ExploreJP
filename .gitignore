@@ -16,3 +16,6 @@ charts/
 
 # SQLite database (auto-generated at runtime)
 database/*.db
+
+# Environment / secrets
+.env

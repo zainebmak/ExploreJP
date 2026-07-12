@@ -3,14 +3,21 @@ engine.py
 Sakura AI engine.
 
 Phase 2: Pure database-driven responses (always available, no API key needed).
-Phase 3: LLM-powered conversational responses grounded in DB context (requires GEMINI_API_KEY).
-
-The engine auto-detects which mode to use based on whether an API key is configured.
+Phase 3: LLM-powered conversational responses grounded in DB context (requires GROQ_API_KEY).
+         Uses Groq — free tier, no credit card, ultra-fast inference.
+         Get a free key at: https://console.groq.com
 """
 from __future__ import annotations
 
 import os
-import re
+
+# Ensure .env is loaded whenever this module is first imported
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
+
 from explorejp.ai.context_builder import (
     build_full_context,
     get_city_info,
@@ -51,7 +58,7 @@ ACTION TAGS (use these exactly when performing actions):
 - To save a city as favourite: [ACTION:ADD_FAVORITE:CityName]
 - To add to bucket list: [ACTION:ADD_BUCKET:CityName]
 - To create a trip: [ACTION:CREATE_TRIP:name=X|start=YYYY-MM-DD|end=YYYY-MM-DD|season=X|interests=X|budget=X]
-- To navigate to a page: [ACTION:NAVIGATE:PageName]  (valid pages: Explore Cities, Cherry Blossom Guide, Plan Your Trip, Dashboard)
+- To navigate to a page: [ACTION:NAVIGATE:PageName]
 
 --- GROUNDING CONTEXT ---
 {context}
@@ -61,19 +68,15 @@ ACTION TAGS (use these exactly when performing actions):
 # ── Fallback DB-only responses (Phase 2) ─────────────────────────────────────
 
 def _db_response(message: str, user_id: int | None) -> str:
-    """
-    Rule-based responses using only the database.
-    Used when no API key is configured or as a fallback.
-    """
+    """Rule-based responses using only the database. No API key needed."""
     msg = message.lower().strip()
 
-    # City recommendation
     city_mentions = [name for name in
                      ["tokyo", "kyoto", "osaka", "hiroshima", "sapporo",
                       "fukuoka", "nara", "sendai"]
                      if name in msg]
 
-    # Food questions
+    # Food
     if any(w in msg for w in ["food", "eat", "restaurant", "cuisine", "dish", "ramen", "sushi", "okonomiyaki"]):
         if city_mentions:
             city = city_mentions[0].title()
@@ -85,7 +88,6 @@ def _db_response(message: str, user_id: int | None) -> str:
                     f"**Best food areas:** {', '.join(info['areas'])}\n\n"
                     f"**💡 Budget tip:** {info['budget_tip']}"
                 )
-        # General food overview
         lines = ["🍜 **Japan Food Highlights by City**\n"]
         for city, info in list(FOOD_GUIDE.items())[:4]:
             lines.append(f"**{city}:** {info['must_try'][0]}, {info['must_try'][1]}")
@@ -108,13 +110,12 @@ def _db_response(message: str, user_id: int | None) -> str:
     # Budget
     if any(w in msg for w in ["budget", "cost", "money", "cheap", "expensive", "afford", "price"]):
         budget_level = None
-        if "budget" in msg and ("low" in msg or "cheap" in msg or "backpack" in msg):
+        if any(w in msg for w in ["low", "cheap", "backpack"]):
             budget_level = "Budget"
-        elif "luxury" in msg or "high-end" in msg or "splurge" in msg:
+        elif any(w in msg for w in ["luxury", "high-end", "splurge"]):
             budget_level = "Luxury"
-        elif "mid" in msg or "moderate" in msg:
+        elif any(w in msg for w in ["mid", "moderate"]):
             budget_level = "Mid-range"
-
         if budget_level:
             info = get_budget_info(budget_level)
             if info:
@@ -125,36 +126,29 @@ def _db_response(message: str, user_id: int | None) -> str:
                     f"**Food:** {info['food']}\n\n"
                     f"**Tips:**\n" + "\n".join(f"• {t}" for t in info["tips"])
                 )
-        # Overview
         lines = ["💰 **Japan Budget Overview**\n"]
         for level, info in BUDGET_GUIDE.items():
             lines.append(f"**{level}:** {info['daily_range']}")
         lines.append("\nTell me your budget style (Budget / Mid-range / Luxury) for detailed advice!")
         return "\n".join(lines)
 
-    # Culture / etiquette
-    if any(w in msg for w in ["culture", "etiquette", "custom", "rude", "polite", "onsen", "shoes", "bow", "tip", "tipping"]):
+    # Culture
+    if any(w in msg for w in ["culture", "etiquette", "custom", "rude", "polite", "onsen", "shoes", "bow", "tipping"]):
         topic_map = {
             "shoes": "shoes", "onsen": "onsen", "eat": "eating", "food": "eating",
             "tip": "eating", "train": "trains", "cash": "cash", "language": "language",
             "bow": "greetings", "hello": "greetings", "temple": "temple_etiquette",
         }
-        found_topic = None
         for word, topic in topic_map.items():
-            if word in msg:
-                found_topic = topic
-                break
-        if found_topic and found_topic in CULTURE_GUIDE:
-            title = found_topic.replace("_", " ").title()
-            return f"🙏 **{title}**\n\n{CULTURE_GUIDE[found_topic]}"
-
+            if word in msg and topic in CULTURE_GUIDE:
+                return f"🙏 **{topic.replace('_', ' ').title()}**\n\n{CULTURE_GUIDE[topic]}"
         lines = ["🙏 **Japanese Etiquette Quick Guide**\n"]
         for topic, advice in list(CULTURE_GUIDE.items())[:5]:
             lines.append(f"**{topic.replace('_', ' ').title()}:** {advice[:100]}...")
         lines.append("\nAsk about a specific topic for more detail!")
         return "\n".join(lines)
 
-    # City info / recommendation
+    # City info
     if city_mentions:
         city = city_mentions[0].title()
         info = get_city_info(city)
@@ -174,19 +168,17 @@ def _db_response(message: str, user_id: int | None) -> str:
                 result += f"\n🌸 **Sakura tip:** {sakura[:200]}\n"
             return result
 
-    # General recommendation intent
-    if any(w in msg for w in ["recommend", "suggest", "where", "visit", "go", "best city", "which city"]):
-        cities = get_city_info("") or {}
+    # Recommendations
+    if any(w in msg for w in ["recommend", "suggest", "where", "visit", "best city", "which city"]):
         from explorejp.database import get_all_cities
-        all_cities = get_all_cities()
         lines = ["🗾 **Japan Cities at a Glance**\n"]
-        for c in all_cities[:6]:
+        for c in get_all_cities()[:6]:
             lines.append(
                 f"**{c['name']}** ({c['region']}) — {c['best_season'].split()[0]} | "
                 f"Cost: {c['cost_of_living']} | "
                 f"{c['known_for'].replace('|', ', ')[:60]}..."
             )
-        lines.append("\nTell me your interests, season, and budget and I'll give you a personalised recommendation!")
+        lines.append("\nTell me your interests, season, and budget for a personalised recommendation!")
         return "\n".join(lines)
 
     # Greeting
@@ -203,41 +195,47 @@ def _db_response(message: str, user_id: int | None) -> str:
             "What would you like to explore? 🗾"
         )
 
-    # Default
     return (
-        "I'm not sure I understood that — I specialise in Japan travel! Try asking me:\n\n"
+        "I specialise in Japan travel! Try asking:\n\n"
         "• *What should I eat in Osaka?*\n"
-        "• *When is the best time to see cherry blossoms in Kyoto?*\n"
-        "• *I have a mid-range budget — what's Japan like for cost?*\n"
+        "• *Best cities for cherry blossoms?*\n"
+        "• *Mid-range budget tips for Japan?*\n"
         "• *Tell me about Japanese etiquette*\n"
         "• *Recommend a city for a first-time visitor*"
     )
 
 
-# ── LLM engine (Phase 3) — Google Gemini ─────────────────────────────────────
+# ── LLM engine (Phase 3) — Groq (free, no credit card) ───────────────────────
+
+def _get_groq_key() -> str:
+    """Return the Groq key, reloading .env each time to defeat Streamlit's module cache."""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(override=True)
+    except ImportError:
+        pass
+    return os.environ.get("GROQ_API_KEY", "").strip()
+
 
 def is_llm_available() -> bool:
-    """
-    True when GEMINI_API_KEY is set and google-genai is installed.
-    Never instantiates a client — safe to call on every render.
-    """
-    key = os.environ.get("GEMINI_API_KEY", "")
-    if not key or key.startswith("your-"):
+    """True when a valid-looking GROQ_API_KEY is set and groq package is installed."""
+    key = _get_groq_key()
+    # Groq keys start with gsk_ — reject anything that looks like an OpenAI key or placeholder
+    if not key or not key.startswith("gsk_") or len(key) < 20:
         return False
     try:
-        import google.genai  # noqa: F401
+        import groq  # noqa: F401
         return True
     except ImportError:
         return False
 
 
 def llm_unavailable_reason() -> str:
-    """Human-readable reason why LLM is not available."""
-    key = os.environ.get("GEMINI_API_KEY", "")
-    if not key or key.startswith("your-"):
+    key = _get_groq_key()
+    if not key or not key.startswith("gsk_") or len(key) < 20:
         return "no_key"
     try:
-        import google.genai  # noqa: F401
+        import groq  # noqa: F401
         return ""
     except ImportError:
         return "not_installed"
@@ -246,10 +244,10 @@ def llm_unavailable_reason() -> str:
 def llm_response(
     messages: list[dict],
     user_id: int | None = None,
-    model: str = "gemini-2.0-flash",
+    model: str = "llama-3.3-70b-versatile",
 ) -> str:
     """
-    Generate a response using Gemini.
+    Generate a response using Groq (free tier).
     Falls back to rule-based DB responses when no key is configured.
     """
     user_message = messages[-1]["content"] if messages else ""
@@ -258,40 +256,33 @@ def llm_response(
         return _db_response(user_message, user_id)
 
     try:
-        from google import genai
-        from google.genai import types
+        from groq import Groq
 
-        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-
-        # Build grounding context
+        api_key = _get_groq_key()
+        client = Groq(api_key=api_key)
         context = build_full_context(user_id)
-        system_instruction = SYSTEM_PROMPT_TEMPLATE.format(context=context)
+        system_content = SYSTEM_PROMPT_TEMPLATE.format(context=context)
 
-        # Convert message history to Gemini Content format
-        # Keep last 10 turns; skip the last user message (sent separately)
-        history = messages[-11:-1] if len(messages) > 1 else []
-        gemini_history = []
-        for m in history:
-            role = "user" if m["role"] == "user" else "model"
-            gemini_history.append(
-                types.Content(role=role, parts=[types.Part(text=m["content"])])
-            )
+        history = messages[-10:] if len(messages) > 10 else messages
+        api_messages = [{"role": "system", "content": system_content}] + [
+            {"role": m["role"], "content": m["content"]} for m in history
+        ]
 
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=model,
-            contents=gemini_history + [
-                types.Content(role="user", parts=[types.Part(text=user_message)])
-            ],
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.7,
-                max_output_tokens=800,
-            ),
+            messages=api_messages,
+            temperature=0.7,
+            max_tokens=800,
         )
-        return response.text or ""
+        return response.choices[0].message.content or ""
 
     except Exception as e:
+        key_hint = api_key[:10] + "..." if api_key else "EMPTY"
+        raw_env_key = os.environ.get("GROQ_API_KEY", "NO_KEY_IN_ENV")
         return (
-            f"⚠️ AI service temporarily unavailable ({type(e).__name__}: {e}). "
-            f"Falling back to database mode:\n\n{_db_response(user_message, user_id)}"
+            f"⚠️ **Debug info:**\n"
+            f"- Error: `{type(e).__name__}: {str(e)[:120]}`\n"
+            f"- Key passed to Groq: `{key_hint}` (len={len(api_key)})\n"
+            f"- Raw env key: `{raw_env_key[:15]}...` (len={len(raw_env_key)})\n\n"
+            f"{_db_response(user_message, user_id)}"
         )

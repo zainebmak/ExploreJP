@@ -19,14 +19,20 @@ def show():
     user = st.session_state.get("user")
 
     if user:
-        col_brand, col_spacer, col_sakura, col_plan, col_dash, col_logout = st.columns([3, 2, 2, 2, 2, 2])
+        col_brand, col_spacer, col_ai, col_sakura, col_plan, col_dash, col_logout = st.columns([3, 1, 2, 2, 2, 2, 2])
     else:
-        col_brand, col_spacer, col_sakura, col_plan, col_login = st.columns([3, 3, 2, 2, 2])
+        col_brand, col_spacer, col_ai, col_sakura, col_plan, col_login = st.columns([3, 2, 2, 2, 2, 2])
 
     with col_brand:
         if logo_path.exists():
             st.image(str(logo_path), width=44)
         st.markdown("### ExploreJP")
+
+    with col_ai:
+        st.write("")
+        if st.button("🤖 Chat with Sakura", key="nav_sakura_ai_home", use_container_width=True):
+            st.session_state.page = "🤖 Sakura AI"
+            st.rerun()
 
     with col_sakura:
         st.write("")

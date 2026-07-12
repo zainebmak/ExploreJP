@@ -1,16 +1,17 @@
 """Streamlit app for ExploreJP - Discover Japan."""
 
-import os
-import streamlit as st
-from explorejp.config import PAGE_CONFIG, CUSTOM_CSS
-from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom, auth, dashboard, settings, sakura_ai
-
-# Load .env for OPENAI_API_KEY (silently skip if python-dotenv not installed)
+# Load .env FIRST — before any other imports so GROQ_API_KEY is in os.environ
+# when the AI engine module is imported.
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
+
+import os
+import streamlit as st
+from explorejp.config import PAGE_CONFIG, CUSTOM_CSS
+from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom, auth, dashboard, settings, sakura_ai
 
 # Page configuration
 st.set_page_config(**PAGE_CONFIG)
