@@ -580,30 +580,47 @@ CUSTOM_CSS = """
     /* New Clean Home Page Styles - Enhanced Hero Section */
     .hero-container-main {
         background: linear-gradient(135deg, #fff8fb 0%, #fef5f7 50%, #fff 100%);
-        border-radius: 32px;
-        padding: 60px 48px;
+        border-radius: 0 0 32px 32px;
+        padding: 56px 48px 64px;
         margin-bottom: 56px;
         box-shadow: 0 12px 48px rgba(108, 8, 32, 0.08);
         position: relative;
     }
 
-    .top-nav-bar {
+    /* ── Full-width navbar (home page) ── */
+    .top-nav-bar-main {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 32px 56px;
+        padding: 16px 36px;
         background: white;
-        border-radius: 28px;
-        margin-bottom: 48px;
-        box-shadow: 0 8px 36px rgba(108, 8, 32, 0.12);
+        border-radius: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px rgba(108, 8, 32, 0.09);
         position: relative;
         z-index: 10;
     }
 
-    .nav-brand-main {
-        display: flex;
-        align-items: center;
-        gap: 16px;
+    .nav-cta-main-link {
+        background: white;
+        color: """ + COLORS['burgundy'] + """;
+        border: 2px solid """ + COLORS['burgundy'] + """;
+        border-radius: 32px;
+        padding: 10px 24px;
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.3s;
+        font-family: '""" + FONTS['body'] + """', sans-serif;
+    }
+
+    .nav-cta-main-link:hover {
+        background: """ + COLORS['burgundy'] + """;
+        color: white;
+        box-shadow: 0 8px 24px rgba(108, 8, 32, 0.22);
+        transform: translateY(-2px);
     }
 
     .nav-brand-main .brand-logo,
@@ -679,7 +696,7 @@ CUSTOM_CSS = """
     }
 
     .hero-left-content {
-        padding: 40px 48px 40px 0;
+        padding: 32px 40px 32px 0;
         position: relative;
         z-index: 2;
         display: flex;
@@ -688,20 +705,20 @@ CUSTOM_CSS = """
     }
 
     .hero-eyebrow-text {
-        font-size: 0.8rem;
-        letter-spacing: 0.2em;
+        font-size: 0.78rem;
+        letter-spacing: 0.22em;
         color: """ + COLORS['burgundy'] + """;
         font-weight: 700;
-        margin-bottom: 28px;
+        margin: 0 0 16px 0;
         display: inline-block;
         text-transform: uppercase;
     }
 
     .hero-title-main {
-        font-size: 5.5rem;
-        line-height: 0.92;
+        font-size: 5rem;
+        line-height: 0.95;
         color: """ + COLORS['burgundy'] + """;
-        margin-bottom: 36px;
+        margin: 0 0 28px 0;
         font-family: '""" + FONTS['heading'] + """', serif;
         font-weight: 700;
         text-shadow: 0 2px 8px rgba(108, 8, 32, 0.05);
@@ -709,11 +726,11 @@ CUSTOM_CSS = """
     }
 
     .hero-desc-text {
-        font-size: 1.15rem;
-        line-height: 1.9;
+        font-size: 1.1rem;
+        line-height: 1.85;
         color: #5a5a5a;
-        margin-bottom: 44px;
-        max-width: 540px;
+        margin: 0 0 40px 0;
+        max-width: 520px;
         font-weight: 400;
     }
 
@@ -739,50 +756,6 @@ CUSTOM_CSS = """
     .hero-image-main:hover {
         transform: scale(1.02) translateY(-8px);
         box-shadow: 0 32px 96px rgba(108, 8, 32, 0.28);
-    }
-
-    .hero-eyebrow-text {
-        font-size: 0.75rem;
-        letter-spacing: 0.18em;
-        color: """ + COLORS['burgundy'] + """;
-        font-weight: 700;
-        margin-bottom: 24px;
-        display: inline-block;
-    }
-
-    .hero-title-main {
-        font-size: 5rem;
-        line-height: 0.95;
-        color: """ + COLORS['burgundy'] + """;
-        margin-bottom: 32px;
-        font-family: '""" + FONTS['heading'] + """', serif;
-        font-weight: 700;
-        text-shadow: 0 2px 4px rgba(108, 8, 32, 0.05);
-    }
-
-    .hero-desc-text {
-        font-size: 1.08rem;
-        line-height: 1.85;
-        color: #5a5a5a;
-        margin-bottom: 40px;
-        max-width: 520px;
-    }
-
-    .hero-right-visual {
-        position: relative;
-        padding: 20px;
-    }
-
-    .hero-image-main {
-        width: 100%;
-        border-radius: 28px;
-        box-shadow: 0 24px 72px rgba(108, 8, 32, 0.18);
-        display: block;
-        transition: transform 0.3s;
-    }
-
-    .hero-image-main:hover {
-        transform: scale(1.02);
     }
 
     .section-title-main {

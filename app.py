@@ -2,7 +2,7 @@
 
 import streamlit as st
 from explorejp.config import PAGE_CONFIG, CUSTOM_CSS
-from explorejp.pages import home, explore_cities
+from explorejp.pages import home, explore_cities, plan_trip
 
 # Page configuration
 st.set_page_config(**PAGE_CONFIG)
@@ -55,6 +55,7 @@ def main():
         - Explore popular destinations
         - Compare cities
         - View interactive statistics
+        - Plan your perfect trip
         """)
     
     # Page routing
@@ -62,6 +63,8 @@ def main():
         home.show()
     elif st.session_state.page == "🗺️ Explore Cities":
         explore_cities.show()
+    elif st.session_state.page == "🧳 Plan Your Trip":
+        plan_trip.show()
 
 if __name__ == "__main__":
     main()

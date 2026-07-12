@@ -7,9 +7,13 @@ from explorejp.database import (
     get_all_cities as db_get_all_cities,
     get_all_regions as db_get_all_regions,
     get_all_seasons as db_get_all_seasons,
+    get_cities_count_by_region,
+    get_cities_count_by_season,
     get_city_by_id,
     get_cities_by_region as db_get_cities_by_region,
     get_cities_by_season as db_get_cities_by_season,
+    get_regional_statistics_sql,
+    get_total_cities,
     search_cities as db_search_cities,
 )
 
@@ -164,3 +168,19 @@ def get_regional_statistics() -> dict[str, dict[str, str]]:
         }
     
     return result
+
+
+# SQL-based statistics functions
+def get_cities_count_by_region_data() -> dict[str, int]:
+    """Get count of cities per region using SQL."""
+    return get_cities_count_by_region()
+
+
+def get_cities_count_by_season_data() -> dict[str, int]:
+    """Get count of cities per season using SQL."""
+    return get_cities_count_by_season()
+
+
+def get_total_cities_count() -> int:
+    """Get total number of cities using SQL."""
+    return get_total_cities()
