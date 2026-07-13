@@ -89,6 +89,11 @@ def _favorite_button_label(city_id, favorite_ids) -> str:
 
 
 def _render_page_header() -> None:
+    col_back, _ = st.columns([1, 6])
+    with col_back:
+        if st.button("🏠 Back to Home", key="back_home_explore", use_container_width=True):
+            st.session_state.page = "🏠 Home"
+            st.rerun()
     st.markdown('<div class="explore-page-header"><h1 class="explore-title">🗾 Explore Japan\'s Cities</h1><p class="explore-subtitle">Discover amazing destinations, compare cities, and build your perfect Japan travel itinerary</p></div>', unsafe_allow_html=True)
 
 

@@ -49,6 +49,12 @@ def show():
     user = st.session_state.get("user")
     user_id = user["id"] if user else None
 
+    col_back, _ = st.columns([1, 6])
+    with col_back:
+        if st.button("🏠 Back to Home", key="back_home_sakura_ai", use_container_width=True):
+            st.session_state.page = "🏠 Home"
+            st.rerun()
+
     _render_header(user)
     _render_mode_badge()
 
@@ -85,10 +91,16 @@ def _render_header(user):
                 padding: 28px 32px;
                 margin-bottom: 8px;
             ">
-                <h1 style="color:white;margin:0;font-size:2rem;">🌸 Sakura AI</h1>
-                <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:1.05rem;">
-                    Your personal Japan travel consultant — powered by ExploreJP's own database
-                </p>
+                <style>
+                    .sakura-header h1 { color: #F2AEBC !important; }
+                    .sakura-header p  { color: rgba(242,174,188,0.9) !important; }
+                </style>
+                <div class="sakura-header">
+                    <h1 style="margin:0;font-size:2rem;">🌸 Sakura AI</h1>
+                    <p style="margin:6px 0 0;font-size:1.05rem;">
+                        Your personal Japan travel consultant — powered by ExploreJP's own database
+                    </p>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,

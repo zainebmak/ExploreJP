@@ -112,6 +112,32 @@ def init_database() -> None:
         )
     """)
 
+    # Create weather_data table for climate information
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS weather_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            city_id INTEGER NOT NULL UNIQUE,
+            january_avg_temp REAL,
+            february_avg_temp REAL,
+            march_avg_temp REAL,
+            april_avg_temp REAL,
+            may_avg_temp REAL,
+            june_avg_temp REAL,
+            july_avg_temp REAL,
+            august_avg_temp REAL,
+            september_avg_temp REAL,
+            october_avg_temp REAL,
+            november_avg_temp REAL,
+            december_avg_temp REAL,
+            annual_avg_temp REAL,
+            annual_precipitation REAL,
+            humidity_avg REAL,
+            climate_type TEXT,
+            best_months TEXT,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+
     # ── User authentication tables ────────────────────────────────────────────
 
     cursor.execute("""
@@ -1165,3 +1191,156 @@ def get_user_itineraries(user_id: int) -> list[dict]:
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+# ── Weather data functions ───────────────────────────────────────────────────────
+
+def add_weather_data(city_id: int, january_avg_temp: float, february_avg_temp: float,
+                    march_avg_temp: float, april_avg_temp: float, may_avg_temp: float,
+                    june_avg_temp: float, july_avg_temp: float, august_avg_temp: float,
+                    september_avg_temp: float, october_avg_temp: float, november_avg_temp: float,
+                    december_avg_temp: float, annual_avg_temp: float, annual_precipitation: float,
+                    humidity_avg: float, climate_type: str, best_months: str) -> int:
+    """Add weather data for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO weather_data 
+        (city_id, january_avg_temp, february_avg_temp, march_avg_temp, april_avg_temp,
+         may_avg_temp, june_avg_temp, july_avg_temp, august_avg_temp, september_avg_temp,
+         october_avg_temp, november_avg_temp, december_avg_temp, annual_avg_temp,
+         annual_precipitation, humidity_avg, climate_type, best_months)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (city_id, january_avg_temp, february_avg_temp, march_avg_temp, april_avg_temp,
+          may_avg_temp, june_avg_temp, july_avg_temp, august_avg_temp, september_avg_temp,
+          october_avg_temp, november_avg_temp, december_avg_temp, annual_avg_temp,
+          annual_precipitation, humidity_avg, climate_type, best_months))
+    
+    weather_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return weather_id
+
+
+def get_weather_data_by_city(city_id: int) -> dict | None:
+    """Get weather data for a specific city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT wd.*, c.name, c.region 
+        FROM weather_data wd
+        JOIN cities c ON wd.city_id = c.id
+        WHERE wd.city_id = ?
+    """, (city_id,))
+    row = cursor.fetchone()
+    
+    conn.close()
+    
+    return dict(row) if row else None
+
+
+def get_all_weather_data() -> list[dict]:
+    """Get all cities with weather data."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT wd.*, c.name, c.region 
+        FROM weather_data wd
+        JOIN cities c ON wd.city_id = c.id
+        ORDER BY c.name
+    """)
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_weather_data_by_climate_type(climate_type: str) -> list[dict]:
+    """Get cities by climate type."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT wd.*, c.name, c.region 
+        FROM weather_data wd
+        JOIN cities c ON wd.city_id = c.id
+        WHERE wd.climate_type LIKE ?
+        ORDER BY c.name
+    """, (f"%{climate_type}%",))
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_cities_by_best_month(month: str) -> list[dict]:
+    """Get cities that have a specific month in their best months."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT wd.*, c.name, c.region 
+        FROM weather_data wd
+        JOIN cities c ON wd.city_id = c.id
+        WHERE wd.best_months LIKE ?
+        ORDER BY c.name
+    """, (f"%{month}%",))
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def update_weather_data(city_id: int, **kwargs) -> bool:
+    """Update weather data for a city. Returns True if updated."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    valid_fields = [
+        'january_avg_temp', 'february_avg_temp', 'march_avg_temp', 'april_avg_temp',
+        'may_avg_temp', 'june_avg_temp', 'july_avg_temp', 'august_avg_temp',
+        'september_avg_temp', 'october_avg_temp', 'november_avg_temp', 'december_avg_temp',
+        'annual_avg_temp', 'annual_precipitation', 'humidity_avg', 'climate_type', 'best_months'
+    ]
+    
+    updates = []
+    params = []
+    
+    for key, value in kwargs.items():
+        if key in valid_fields and value is not None:
+            updates.append(f"{key} = ?")
+            params.append(value)
+    
+    if not updates:
+        conn.close()
+        return False
+    
+    params.append(city_id)
+    cursor.execute(f"UPDATE weather_data SET {', '.join(updates)} WHERE city_id = ?", params)
+    
+    rows_affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    
+    return rows_affected > 0
+
+
+def delete_weather_data(city_id: int) -> bool:
+    """Delete weather data for a city. Returns True if deleted."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM weather_data WHERE city_id = ?", (city_id,))
+    rows_affected = cursor.rowcount
+    
+    conn.commit()
+    conn.close()
+    
+    return rows_affected > 0

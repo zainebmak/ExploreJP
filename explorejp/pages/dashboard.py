@@ -31,6 +31,12 @@ def _city_img(name: str) -> str:
 def show():
     """Display the personal dashboard."""
 
+    col_back, _ = st.columns([1, 6])
+    with col_back:
+        if st.button("🏠 Back to Home", key="back_home_dashboard", use_container_width=True):
+            st.session_state.page = "🏠 Home"
+            st.rerun()
+
     user = st.session_state.get("user")
     if not user:
         st.warning("Please log in to view your dashboard.")

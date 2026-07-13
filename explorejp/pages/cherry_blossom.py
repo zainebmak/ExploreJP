@@ -27,6 +27,12 @@ except ImportError as e:
 def show():
     """Display the cherry blossom guide page."""
 
+    col_back, _ = st.columns([1, 6])
+    with col_back:
+        if st.button("🏠 Back to Home", key="back_home_cherry", use_container_width=True):
+            st.session_state.page = "🏠 Home"
+            st.rerun()
+
     if "sakura_section" not in st.session_state:
         st.session_state.sakura_section = "home"
 

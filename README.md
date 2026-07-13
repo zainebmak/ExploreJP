@@ -74,6 +74,22 @@ Plan your perfect Japan trip:
 - Crowd level indicators and travel tips
 - Nearby attractions for each sakura destination
 
+### 🤖 Sakura AI — Japan Travel Consultant
+An AI-powered chat assistant built into the app:
+- Conversational travel advice powered by Groq (LLM mode)
+- Falls back to ExploreJP's own database when no API key is set
+- Quick-action suggestion chips for common travel questions
+- Personalized responses for logged-in users
+- Set your Groq API key in `.env` to enable full AI mode (free at [console.groq.com](https://console.groq.com))
+
+### 🌤️ Weather Analysis & Climate Data
+- Comprehensive climate data for Japanese cities
+- Monthly temperature patterns and visualizations
+- Climate type classification and comparison
+- Best months to visit recommendations
+- Annual precipitation and humidity analysis
+- Interactive Plotly charts and heatmaps
+
 ## 🎨 Design
 
 - Cherry blossom-inspired color palette
@@ -81,6 +97,7 @@ Plan your perfect Japan trip:
 - Smooth animations and transitions
 - Playfair Display and Montserrat fonts
 - Auth-aware navbar on every page
+- "Back to Home" button on every feature page for easy navigation
 
 ## 🚀 Getting Started
 
@@ -129,7 +146,7 @@ python main.py
 - **Data Visualization**: Plotly
 - **Maps**: Folium + streamlit-folium
 - **PDF Export**: fpdf2
-- **Styling**: Custom CSS
+- **AI**: Groq API (LLM mode) / ExploreJP database (fallback mode)
 
 ## 📁 Project Structure
 
@@ -150,6 +167,8 @@ ExploreJP/
 │   │   ├── explore_cities.py # City browsing & search
 │   │   ├── plan_trip.py      # Trip planning & itinerary builder
 │   │   ├── cherry_blossom.py # Sakura guide
+│   │   ├── sakura_ai.py      # AI travel consultant (Groq)
+│   │   ├── weather.py        # Weather analysis & climate data
 │   │   └── data_visualizations.py
 │   ├── screens/              # Console application screens
 │   └── data/                 # Data helpers
@@ -183,10 +202,11 @@ ExploreJP/
 - Data visualizations
 - Trip planning with itinerary builder, map, route optimization, PDF export
 - Cherry Blossom Guide with bloom calendar and viewing spots
+- Weather Analysis and Climate Data with monthly patterns and recommendations
+- Sakura AI chat assistant powered by Groq (with database fallback mode)
+- "Back to Home" navigation button on every feature page
 
 ### Upcoming 🔜
-- Weather analysis and climate data
-- AI assistant
 - Community reviews and ratings
 
 ## 🤝 Contributing

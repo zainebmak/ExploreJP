@@ -19,9 +19,9 @@ def show():
     user = st.session_state.get("user")
 
     if user:
-        col_brand, col_spacer, col_ai, col_sakura, col_plan, col_dash, col_logout = st.columns([3, 1, 2, 2, 2, 2, 2])
+        col_brand, col_ai, col_sakura, col_plan, col_weather, col_dash, col_logout = st.columns([2, 2, 2, 2, 2, 2, 2])
     else:
-        col_brand, col_spacer, col_ai, col_sakura, col_plan, col_login = st.columns([3, 2, 2, 2, 2, 2])
+        col_brand, col_ai, col_sakura, col_plan, col_weather, col_login = st.columns([2, 2, 2, 2, 2, 2])
 
     with col_brand:
         if logo_path.exists():
@@ -45,6 +45,12 @@ def show():
         st.write("")
         if st.button("🧳 Plan Trip", key="nav_plan_trip", use_container_width=True):
             st.session_state.page = "🧳 Plan Your Trip"
+            st.rerun()
+
+    with col_weather:
+        st.write("")
+        if st.button("🌤️ Weather Analysis", key="nav_weather_home", use_container_width=True):
+            st.session_state.page = "🌤️ Weather Analysis"
             st.rerun()
 
     if user:

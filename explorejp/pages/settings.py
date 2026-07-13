@@ -14,6 +14,12 @@ from explorejp.database import (
 def show():
     """Display the settings page."""
 
+    col_back, _ = st.columns([1, 6])
+    with col_back:
+        if st.button("🏠 Back to Home", key="back_home_settings", use_container_width=True):
+            st.session_state.page = "🏠 Home"
+            st.rerun()
+
     user = st.session_state.get("user")
     if not user:
         st.warning("Please log in to access settings.")

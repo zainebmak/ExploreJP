@@ -11,7 +11,7 @@ except ImportError:
 import os
 import streamlit as st
 from explorejp.config import PAGE_CONFIG, CUSTOM_CSS
-from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom, auth, dashboard, settings, sakura_ai
+from explorejp.pages import home, explore_cities, plan_trip, cherry_blossom, auth, dashboard, settings, sakura_ai, weather
 
 # Page configuration
 st.set_page_config(**PAGE_CONFIG)
@@ -70,6 +70,11 @@ def main():
         if st.button("🤖 Sakura AI", key="nav_sakura_ai", use_container_width=True):
             st.session_state.page = "🤖 Sakura AI"
             st.rerun()
+
+        if st.button("🌤️ Weather Analysis", key="nav_weather", use_container_width=True):
+            st.session_state.page = "🌤️ Weather Analysis"
+            st.rerun()
+
         
         st.markdown("---")
 
@@ -123,6 +128,8 @@ def main():
         settings.show()
     elif st.session_state.page == "🤖 Sakura AI":
         sakura_ai.show()
+    elif st.session_state.page == "🌤️ Weather Analysis":
+        weather.show()
 
 if __name__ == "__main__":
     main()

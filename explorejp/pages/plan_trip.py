@@ -205,7 +205,13 @@ def _export_itinerary_to_pdf(itinerary: dict, cities: list[dict]) -> bytes:
 
 def show():
     """Display the trip planning page."""
-    
+
+    col_back, _ = st.columns([1, 6])
+    with col_back:
+        if st.button("🏠 Back to Home", key="back_home_plan", use_container_width=True):
+            st.session_state.page = "🏠 Home"
+            st.rerun()
+
     st.markdown("## 🧳 Plan Your Trip")
     st.markdown("Create your perfect Japan itinerary with smart recommendations")
     
