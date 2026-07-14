@@ -29,6 +29,9 @@ from explorejp.database import (
     remove_from_bucket_list,
     is_in_bucket_list,
     get_bucket_list,
+    get_city_average_rating,
+    get_city_rating_count,
+    get_user_review_for_city,
 )
 from explorejp.pages.data_visualizations import (
     get_cities_df,
@@ -86,6 +89,18 @@ def _remove_fav(city_id: int) -> None:
 
 def _favorite_button_label(city_id, favorite_ids) -> str:
     return "💖 Saved" if city_id in favorite_ids else "🤍 Save"
+
+
+def _render_rating_stars(rating: float) -> str:
+    """Render star rating display."""
+    full_stars = int(rating)
+    has_half = rating - full_stars >= 0.5
+    
+    stars = "⭐" * full_stars
+    if has_half:
+        stars += "✨"
+    
+    return stars
 
 
 def _render_page_header() -> None:
@@ -297,6 +312,14 @@ def _show_city_details() -> None:
             st.markdown(f'**🌸 Best Season:** {city["best_season"]}')
             st.markdown(f'**👥 Population:** {city["population"]}')
             st.markdown(f'**💰 Cost of Living:** {city["cost_of_living"]}')
+            
+            # Rating display
+            avg_rating = get_city_average_rating(city["id"])
+            rating_count = get_city_rating_count(city["id"])
+            if rating_count > 0:
+                st.markdown(f'**⭐ Rating:** {_render_rating_stars(avg_rating)} ({avg_rating}/5 from {rating_count} {"review" if rating_count == 1 else "reviews"})')
+            else:
+                st.markdown('**⭐ Rating:** No reviews yet')
 
         with col2:
             st.markdown('### Known For')
@@ -329,6 +352,13 @@ def _show_city_details() -> None:
                     st.rerun()
 
         st.markdown("---")
+        
+        # View reviews button
+        if st.button("💬 View Reviews", key=f"view_reviews_{city['id']}", use_container_width=True):
+            st.session_state.page = "⭐ Reviews"
+            st.session_state.reviews_city_id = city["id"]
+            st.rerun()
+        
         if st.button("✕ Close Details", key="close_details", use_container_width=True):
             del st.session_state.selected_city_id
             st.rerun()

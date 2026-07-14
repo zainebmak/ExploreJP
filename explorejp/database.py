@@ -188,6 +188,22 @@ def init_database() -> None:
         )
     """)
 
+    # Create reviews table for community reviews and ratings
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            city_id INTEGER NOT NULL,
+            rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+            review_text TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, city_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+        )
+    """)
+
     # Add user_id to itineraries if not present (migration)
     try:
         cursor.execute("ALTER TABLE itineraries ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
@@ -1330,6 +1346,193 @@ def update_weather_data(city_id: int, **kwargs) -> bool:
     conn.close()
     
     return rows_affected > 0
+
+
+# ── Reviews and Ratings functions ───────────────────────────────────────────────
+
+def add_review(user_id: int, city_id: int, rating: int, review_text: str | None = None) -> int | None:
+    """Add a review for a city. Returns review id or None if already reviewed."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO reviews (user_id, city_id, rating, review_text)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, city_id, rating, review_text))
+        
+        review_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return review_id
+    except sqlite3.IntegrityError:
+        # User already reviewed this city
+        conn.close()
+        return None
+
+
+def get_reviews_by_city(city_id: int) -> list[dict]:
+    """Get all reviews for a city with user info."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT r.*, u.username, c.name as city_name
+        FROM reviews r
+        JOIN users u ON r.user_id = u.id
+        JOIN cities c ON r.city_id = c.id
+        WHERE r.city_id = ?
+        ORDER BY r.created_at DESC
+    """, (city_id,))
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_reviews_by_user(user_id: int) -> list[dict]:
+    """Get all reviews by a user with city info."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT r.*, c.name as city_name, c.region
+        FROM reviews r
+        JOIN cities c ON r.city_id = c.id
+        WHERE r.user_id = ?
+        ORDER BY r.created_at DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_user_review_for_city(user_id: int, city_id: int) -> dict | None:
+    """Get a specific user's review for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT r.*, c.name as city_name
+        FROM reviews r
+        JOIN cities c ON r.city_id = c.id
+        WHERE r.user_id = ? AND r.city_id = ?
+    """, (user_id, city_id))
+    row = cursor.fetchone()
+    
+    conn.close()
+    
+    return dict(row) if row else None
+
+
+def update_review(user_id: int, city_id: int, rating: int | None = None, 
+                  review_text: str | None = None) -> bool:
+    """Update an existing review. Returns True if updated."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    updates = []
+    params = []
+    
+    if rating is not None:
+        updates.append("rating = ?")
+        params.append(rating)
+    if review_text is not None:
+        updates.append("review_text = ?")
+        params.append(review_text)
+    
+    if not updates:
+        conn.close()
+        return False
+    
+    updates.append("updated_at = CURRENT_TIMESTAMP")
+    params.extend([user_id, city_id])
+    
+    cursor.execute(f"""
+        UPDATE reviews 
+        SET {', '.join(updates)}
+        WHERE user_id = ? AND city_id = ?
+    """, params)
+    
+    rows_affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    
+    return rows_affected > 0
+
+
+def delete_review(user_id: int, city_id: int) -> bool:
+    """Delete a review. Returns True if deleted."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        DELETE FROM reviews 
+        WHERE user_id = ? AND city_id = ?
+    """, (user_id, city_id))
+    
+    rows_affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    
+    return rows_affected > 0
+
+
+def get_city_average_rating(city_id: int) -> float:
+    """Get the average rating for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT AVG(rating) as avg_rating
+        FROM reviews
+        WHERE city_id = ?
+    """, (city_id,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    return round(result["avg_rating"], 1) if result and result["avg_rating"] else 0.0
+
+
+def get_city_rating_count(city_id: int) -> int:
+    """Get the number of reviews for a city."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT COUNT(*) as count
+        FROM reviews
+        WHERE city_id = ?
+    """, (city_id,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    return result["count"] if result else 0
+
+
+def get_all_reviews() -> list[dict]:
+    """Get all reviews with user and city info."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT r.*, u.username, c.name as city_name, c.region
+        FROM reviews r
+        JOIN users u ON r.user_id = u.id
+        JOIN cities c ON r.city_id = c.id
+        ORDER BY r.created_at DESC
+    """)
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict(row) for row in rows]
 
 
 def delete_weather_data(city_id: int) -> bool:
