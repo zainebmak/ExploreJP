@@ -9,6 +9,8 @@ DB_PATH = Path(__file__).parent.parent / "database" / "explorejp.db"
 
 def get_connection() -> sqlite3.Connection:
     """Get a database connection."""
+    # Ensure database directory exists
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row  # Allow column access by name
     return conn
