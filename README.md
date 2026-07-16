@@ -56,10 +56,10 @@ ExploreJP/
     └── cities.csv            # City data source
 ```
 
-## � License
+##  License
 
 MIT License - see LICENSE file for details.
 
-## � Author
+## Author
 
 **Zaineb Makhlouf** — [zainebmak](https://github.com/zainebmak)
