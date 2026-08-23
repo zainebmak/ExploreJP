@@ -49,7 +49,7 @@ def show():
 
     with col_weather:
         st.write("")
-        if st.button("🌤️ Weather Analysis", key="nav_weather_home", use_container_width=True):
+        if st.button("🌤️ Weather ", key="nav_weather_home", use_container_width=True):
             st.session_state.page = "🌤️ Weather Analysis"
             st.rerun()
 

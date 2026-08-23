@@ -244,7 +244,7 @@ def llm_unavailable_reason() -> str:
 def llm_response(
     messages: list[dict],
     user_id: int | None = None,
-    model: str = "llama-3.3-70b-versatile",
+    model: str = "openai/gpt-oss-120b",
 ) -> str:
     """
     Generate a response using Groq (free tier).
