@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 
-# Ensure .env is loaded whenever this module is first imported
+
 try:
     from dotenv import load_dotenv
     load_dotenv(override=True)
@@ -30,7 +30,7 @@ from explorejp.ai.context_builder import (
     SAKURA_TIPS,
 )
 
-# ── System prompt ─────────────────────────────────────────────────────────────
+
 
 SYSTEM_PROMPT_TEMPLATE = """You are Sakura AI, an expert Japan travel consultant for ExploreJP.
 Your personality is warm, knowledgeable, and enthusiastic about Japan.
@@ -65,7 +65,6 @@ ACTION TAGS (use these exactly when performing actions):
 --- END CONTEXT ---
 """
 
-# ── Fallback DB-only responses (Phase 2) ─────────────────────────────────────
 
 def _db_response(message: str, user_id: int | None) -> str:
     """Rule-based responses using only the database. No API key needed."""
