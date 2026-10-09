@@ -17,7 +17,6 @@ from explorejp.database import (
 )
 
 
-# ── Static knowledge blocks ───────────────────────────────────────────────────
 
 FOOD_GUIDE: dict[str, dict] = {
     "Tokyo": {
@@ -116,7 +115,6 @@ SAKURA_TIPS = {
 }
 
 
-# ── Dynamic context from DB ───────────────────────────────────────────────────
 
 def build_cities_context() -> str:
     """Return a concise text block of all cities from the DB."""
