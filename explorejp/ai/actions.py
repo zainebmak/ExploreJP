@@ -24,11 +24,10 @@ from explorejp.database import (
 )
 
 
-# ── Action parsing ────────────────────────────────────────────────────────────
 
 ACTION_PATTERN = re.compile(r"\[ACTION:([A-Z_]+):([^\]]*)\]")
 
-# Page name → session state page key used by app.py router
+
 PAGE_MAP = {
     "explore cities":         "🗺️ Explore Cities",
     "cherry blossom guide":   "🌸 Cherry Blossom Guide",
@@ -60,13 +59,13 @@ def parse_and_execute(response_text: str, user_id: int | None) -> tuple[str, lis
     for match in ACTION_PATTERN.finditer(response_text):
         action_type = match.group(1)
         payload = match.group(2)
-        tag = match.group(0)  # full [ACTION:...] string to strip
+        tag = match.group(0)  
 
         msg = _execute_action(action_type, payload, user_id)
         if msg:
             confirmations.append(msg)
 
-        # Remove tag from response text
+       
         clean_text = clean_text.replace(tag, "").strip()
 
     return clean_text, confirmations
@@ -75,7 +74,7 @@ def parse_and_execute(response_text: str, user_id: int | None) -> tuple[str, lis
 def _execute_action(action_type: str, payload: str, user_id: int | None) -> str | None:
     """Execute a single action. Returns a confirmation string or None."""
 
-    # ── ADD_FAVORITE ──────────────────────────────────────────────────────────
+    
     if action_type == "ADD_FAVORITE":
         if not user_id:
             return "ℹ️ Log in to save favourites."
@@ -88,7 +87,7 @@ def _execute_action(action_type: str, payload: str, user_id: int | None) -> str 
             return f"❤️ **{payload}** added to your favourites!"
         return f"ℹ️ **{payload}** is already in your favourites."
 
-    # ── ADD_BUCKET ────────────────────────────────────────────────────────────
+   
     if action_type == "ADD_BUCKET":
         if not user_id:
             return "ℹ️ Log in to use the bucket list."
@@ -100,7 +99,7 @@ def _execute_action(action_type: str, payload: str, user_id: int | None) -> str 
             return f"🌸 **{payload}** added to your bucket list!"
         return f"ℹ️ **{payload}** is already in your bucket list."
 
-    # ── CREATE_TRIP ───────────────────────────────────────────────────────────
+    
     if action_type == "CREATE_TRIP":
         if not user_id:
             return "ℹ️ Log in to save trips."
@@ -125,9 +124,7 @@ def _execute_action(action_type: str, payload: str, user_id: int | None) -> str 
             end_date=end,
             season=season,
             interests=interests,
-            budget=budget,
-        )
-        # Store in session so Plan Your Trip page can open it
+         
         st.session_state.current_itinerary_id = trip_id
         return (
             f"🧳 Trip **'{name}'** created! "
@@ -135,7 +132,6 @@ def _execute_action(action_type: str, payload: str, user_id: int | None) -> str 
             f"Go to **Plan Your Trip** to add cities."
         )
 
-    # ── NAVIGATE ──────────────────────────────────────────────────────────────
     if action_type == "NAVIGATE":
         page = PAGE_MAP.get(payload.strip().lower())
         if page:
